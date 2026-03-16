@@ -1,30 +1,28 @@
 import cv2
 import numpy as np
 import json
-import os
 from dataclasses import dataclass
 from typing import Optional
+import os
 
-PROFILES_DIR = "color_profiles"
+from hsv_utils import PROFILES_DIR, build_hsv_mask
 
 
 @dataclass
 class DetectionResult:
     """Resultatet fra en farvedetektion."""
     found:   bool
-    center:  Optional[tuple]  = None  # (x, y) i pixels
-    area:    float            = 0.0   # Areal i pixels²
-    contour: Optional[object] = None  # Rå OpenCV kontur
-    mask:    Optional[object] = None  # Binær maske (debug)
-    bbox:    Optional[tuple]  = None  # (x, y, w, h)
+    center:  Optional[tuple]  = None
+    area:    float            = 0.0
+    contour: Optional[object] = None
+    mask:    Optional[object] = None
+    bbox:    Optional[tuple]  = None
 
 
 class ColorDetector:
     def __init__(self, min_area: int = 300):
         self.profiles: dict[str, dict] = {}
         self.min_area = min_area
-
-    # ── Profil-håndtering ─────────────────────────────────────
 
     def load_profile(self, name: str) -> bool:
         path = os.path.join(PROFILES_DIR, f"{name}.json")
@@ -34,50 +32,33 @@ class ColorDetector:
             return False
         with open(path) as f:
             self.profiles[name] = json.load(f)
-        print(f"  [ColorDetector] Profil indlæst: '{name}'")
         return True
 
     def set_profile_manual(self, name: str, lower: list, upper: list):
         self.profiles[name] = {"name": name, "lower": lower, "upper": upper}
 
-    # ── Hoved-detektion ───────────────────────────────────────
-
-    def detect_color(self, frame, profile_name: str,
-                     debug: bool = False) -> DetectionResult:
+    def detect_color(self, frame, profile_name: str) -> DetectionResult:
         if profile_name not in self.profiles:
-            print(f"  [ColorDetector] Profil '{profile_name}' ikke indlæst.")
-            return DetectionResult(found=False)
+            raise ValueError(f"Profil '{profile_name}' ikke indlæst — kald load_profile() først.")
 
         profile = self.profiles[profile_name]
-        lower = np.array(profile["lower"], dtype=np.uint8)
-        upper = np.array(profile["upper"], dtype=np.uint8)
+        h, s, v = profile.get("h"), profile.get("s"), profile.get("v")
+        h_tol, s_tol, v_tol = profile.get("h_tol"), profile.get("s_tol"), profile.get("v_tol")
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, lower, upper)
 
-        # Hue wraparound for rød (profilen gemmer kun ét range)
-        h_center = profile.get("h")
-        h_tol = profile.get("h_tol")
-        if h_center is not None and h_tol is not None:
-            if h_center - h_tol < 0:
-                lower2 = np.array([h_center - h_tol + 180,
-                                   profile["lower"][1], profile["lower"][2]])
-                upper2 = np.array([179, profile["upper"][1], profile["upper"][2]])
-                mask |= cv2.inRange(hsv, lower2, upper2)
-            if h_center + h_tol > 179:
-                lower2 = np.array([0, profile["lower"][1], profile["lower"][2]])
-                upper2 = np.array([h_center + h_tol - 180,
-                                   profile["upper"][1], profile["upper"][2]])
-                mask |= cv2.inRange(hsv, lower2, upper2)
-
-        # Morfologi — fjern støj og luk huller
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        if all(x is not None for x in (h, s, v, h_tol, s_tol, v_tol)):
+            mask = build_hsv_mask(hsv, h, s, v, h_tol, s_tol, v_tol)
+        else:
+            lower = np.array(profile["lower"], dtype=np.uint8)
+            upper = np.array(profile["upper"], dtype=np.uint8)
+            mask = cv2.inRange(hsv, lower, upper)
+            kernel = np.ones((5, 5), np.uint8)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                         cv2.CHAIN_APPROX_SIMPLE)
-
         if not contours:
             return DetectionResult(found=False, mask=mask)
 
@@ -90,46 +71,12 @@ class ColorDetector:
         M = cv2.moments(best)
         cx = int(M["m10"] / M["m00"])
         cy = int(M["m01"] / M["m00"])
-
-        x, y, w, h = cv2.boundingRect(best)
-
-        if debug:
-            self._show_debug(frame, mask, best, (cx, cy), profile_name)
+        x, y, w, h_box = cv2.boundingRect(best)
 
         return DetectionResult(
-            found=True,
-            center=(cx, cy),
-            area=area,
-            contour=best,
-            mask=mask,
-            bbox=(x, y, w, h),
+            found=True, center=(cx, cy), area=area,
+            contour=best, mask=mask, bbox=(x, y, w, h_box),
         )
-
-    # ── Navngivne hjælpere ────────────────────────────────────
-
-    def detect_yellow(self, frame, debug=False) -> DetectionResult:
-        return self.detect_color(frame, "yellow", debug=debug)
-
-    def detect_green(self, frame, debug=False) -> DetectionResult:
-        return self.detect_color(frame, "green", debug=debug)
-
-    def detect_orange(self, frame, debug=False) -> DetectionResult:
-        return self.detect_color(frame, "orange", debug=debug)
-
-    def detect_blue(self, frame, debug=False) -> DetectionResult:
-        return self.detect_color(frame, "blue", debug=debug)
-
-    # ── Debug / tegning ───────────────────────────────────────
-
-    def _show_debug(self, frame, mask, contour, center, name):
-        debug_frame = frame.copy()
-        cv2.drawContours(debug_frame, [contour], -1, (0, 255, 0), 2)
-        cv2.circle(debug_frame, center, 8, (0, 0, 255), -1)
-        cv2.putText(debug_frame, f"[{name}] center: {center}",
-                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        cv2.imshow(f"Debug: {name}", debug_frame)
-        cv2.imshow(f"Maske: {name}", mask)
-        cv2.waitKey(1)
 
     def draw_detection(self, frame, result: DetectionResult,
                        label: str = "", color: tuple = (0, 255, 0)):
@@ -147,9 +94,6 @@ class ColorDetector:
         return out
 
 
-# ─────────────────────────────────────────────────────────────
-#  Live test:  python src/vision/color_detector.py yellow
-# ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import sys
     from camera import RobotCamera
@@ -158,28 +102,25 @@ if __name__ == "__main__":
 
     detector = ColorDetector(min_area=500)
     if not detector.load_profile(profile):
-        print("Kalibrér farven først:")
-        print(f"  python src/vision/color_calibrator.py {profile}")
         exit(1)
 
     camera = RobotCamera()
     print(f"\nDetekterer '{profile}' — tryk 'q' for at afslutte\n")
 
-    while True:
-        frame = camera.get_frame()
-        if frame is None:
-            continue
+    try:
+        while True:
+            frame = camera.get_frame()
+            if frame is None:
+                continue
 
-        result = detector.detect_color(frame, profile)
+            result = detector.detect_color(frame, profile)
 
-        if result.found:
-            print(f"  FUNDET  center={result.center}  areal={result.area:.0f}px²")
-        else:
-            print("  Ikke fundet")
+            if result.found:
+                print(f"  FUNDET  center={result.center}  areal={result.area:.0f}px²")
 
-        annotated = detector.draw_detection(frame, result, label=profile)
-        cv2.imshow("ColorDetector", annotated)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    camera.release()
+            annotated = detector.draw_detection(frame, result, label=profile)
+            cv2.imshow("ColorDetector", annotated)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        camera.release()
