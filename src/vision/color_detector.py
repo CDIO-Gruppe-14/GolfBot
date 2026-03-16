@@ -107,6 +107,7 @@ class ColorDetector:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return {name: self.detect_all(frame, name, _hsv=hsv) for name in self.profiles}
 
+
 def draw_detection(frame, result: DetectionResult,
                    label: str = "", color: tuple = (0, 255, 0)):
     """Tegn én detektion på frame. Returnerer kopi med annotation."""
@@ -125,6 +126,7 @@ def draw_detection(frame, result: DetectionResult,
 
 
 if __name__ == "__main__":
+    import sys
     from camera import RobotCamera
 
     DRAW_COLORS = [
@@ -133,11 +135,19 @@ if __name__ == "__main__":
     ]
 
     detector = ColorDetector(min_area=500)
-    loaded = detector.load_all_profiles()
-    if not loaded:
-        print("Ingen profiler fundet. Kalibrér først:")
-        print("  python src/vision/color_calibrator.py <farvenavn>")
-        exit(1)
+
+    # Hvis et profil-navn angives som argument, brug kun det — ellers indlæs alle
+    if len(sys.argv) > 1:
+        profile_filter = sys.argv[1]
+        if not detector.load_profile(profile_filter):
+            exit(1)
+        loaded = [profile_filter]
+    else:
+        loaded = detector.load_all_profiles()
+        if not loaded:
+            print("Ingen profiler fundet. Kalibrér først:")
+            print("  python src/vision/color_calibrator.py <farvenavn>")
+            exit(1)
 
     print(f"\nIndlæste profiler: {loaded}")
     print("Tryk 'q' for at afslutte\n")
