@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import json
-import os
 import sys
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask, hsv_bounds
@@ -18,6 +17,7 @@ class ColorCalibrator:
         self.s_tol = 60
         self.v_tol = 60
 
+        import os
         os.makedirs(PROFILES_DIR, exist_ok=True)
         self._setup_window()
 
@@ -60,6 +60,7 @@ class ColorCalibrator:
             "h_tol": self.h_tol, "s_tol": self.s_tol, "v_tol": self.v_tol,
             "lower": lower, "upper": upper,
         }
+        import os
         path = os.path.join(PROFILES_DIR, f"{self.profile_name}.json")
         with open(path, "w") as f:
             json.dump(profile, f, indent=2)
