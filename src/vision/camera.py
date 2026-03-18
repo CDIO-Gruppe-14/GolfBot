@@ -10,8 +10,8 @@ import time
 class RobotCamera:
     def __init__(self, camera_index=0):
         self.cap = cv2.VideoCapture(camera_index)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1400)
         self.prev_time = 0
 
     def get_frame(self):
