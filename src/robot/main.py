@@ -8,7 +8,7 @@ def run_mowing_pattern():
     
     baner = 8
     bane_laengde_mm = 1000  # 1 meter
-    bane_afstand_mm = 125   # Afstand mellem baner (1 meter / 8 baner)
+    bane_afstand_mm = 125   # Afstand mellem baner (1 meter / 8 baner) = 12,5 cm mellem hver bane
 
     print("Starter rute...")
 
@@ -32,8 +32,7 @@ def run_mowing_pattern():
     print("Returnerer til start...")
     robot.turn_90_degrees('left')
     robot.drive_distance(1000) # Kører den meter tilbage vi er kommet "ned"
-    robot.turn_90_degrees('left')
-    robot.drive_distance(1000) # Kører tilbage langs den første bane
+    robot.turn_90_degrees('left') # drejer for at være klar til genoptagning. Den burde nu være i startposition
     
     robot.stop()
     print("Rute færdig!")
