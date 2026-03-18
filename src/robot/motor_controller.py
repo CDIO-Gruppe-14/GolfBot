@@ -1,18 +1,19 @@
+#!/usr/bin/env python3
 import math
-from ev3dev2.motor import LargeMotor, OUTPUT_B, OUTPUT_C, MoveTank, SpeedPercent
+from ev3dev2.motor import LargeMotor, OUTPUT_D, OUTPUT_B, MoveTank, SpeedPercent
 
 # --- Kalibreringskonstanter ---
-WHEEL_DIAMETER_CM  = 5.6                                  # hjuldiameter i cm
-WHEEL_CIRCUMFERENCE_CM = math.pi * WHEEL_DIAMETER_CM      # ~17.59 cm
+WHEEL_DIAMETER_CM  = 6.88                                  # hjuldiameter i cm
+WHEEL_CIRCUMFERENCE_CM = math.pi * WHEEL_DIAMETER_CM      # ~21,6 cm
 AXLE_TRACK_CM      = 12.0   # afstand mellem hjulcentrene
 MOTOR_SPEED        = 30     # hastighed i procent (0-100)
 
 
 class MotorController:
-    """Styrer EV3-tankdrevet (venstre motor: PORT B, højre motor: PORT C)."""
+    """Styrer EV3-tankdrevet (venstre motor: PORT D, højre motor: PORT B)."""
 
     def __init__(self):
-        self.tank = MoveTank(OUTPUT_B, OUTPUT_C)
+        self.tank = MoveTank(OUTPUT_D, OUTPUT_B)
 
     # ------------------------------------------------------------------
     # Grundlæggende bevægelser

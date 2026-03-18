@@ -1,6 +1,6 @@
 # Kun til lokal test – simulerer ev3dev2
+OUTPUT_D = "D"
 OUTPUT_B = "B"
-OUTPUT_C = "C"
 
 class LargeMotor:
     pass
@@ -11,6 +11,6 @@ class SpeedPercent:
 class MoveTank:
     def __init__(self, left, right): pass
     def on_for_rotations(self, left_speed, right_speed, rotations):
-        print(f"  Kør: venstre={left_speed.val}%, højre={right_speed.val}%, rotationer={rotations:.2f}")
+        print(f"  Koer: venstre={left_speed.val}%, hoejre={right_speed.val}%, rotationer={rotations:.2f}")
     def off(self):
         print("  Stop")
