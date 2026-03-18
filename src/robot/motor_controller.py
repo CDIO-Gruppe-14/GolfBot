@@ -1,34 +1,70 @@
-from ev3dev2.motor import MoveTank, OUTPUT_A, OUTPUT_B, SpeedPercent
+#!/usr/bin/env python3
+import math
+from ev3dev2.motor import LargeMotor, OUTPUT_D, OUTPUT_B, MoveTank, SpeedPercent
 
-# chaufføren = den der ved hvilke kommandoer der skal sendes til motorerne for at få robotten til at bevæge sig
+# --- Kalibreringskonstanter ---
+WHEEL_DIAMETER_CM  = 6.88                                  # hjuldiameter i cm
+WHEEL_CIRCUMFERENCE_CM = math.pi * WHEEL_DIAMETER_CM      # ~21,6 cm
+AXLE_TRACK_CM      = 12.0   # afstand mellem hjulcentrene
+MOTOR_SPEED        = 30     # hastighed i procent (0-100)
 
 
 class MotorController:
+    """Styrer EV3-tankdrevet (venstre motor: PORT D, højre motor: PORT B)."""
+
     def __init__(self):
-        # Juster OUTPUT_A/B til de porte motorene sidder i
-        self.tank = MoveTank(OUTPUT_A, OUTPUT_B)
-        self.wheel_diameter_mm = 56  # Standard EV3 hjul
-        self.track_width_mm = 120    # Afstanden mellem midten af de to hjul (VIGTIG for sving)
+        self.tank = MoveTank(OUTPUT_D, OUTPUT_B)
 
-    def drive_distance(self, distance_mm, speed=30):
-        """Kører en specifik distance i mm"""
-        # Formel: (Distance / Omkreds) * 360 grader
-        circumference = self.wheel_diameter_mm * 3.1415
-        degrees = (distance_mm / circumference) * 360
-        self.tank.on_for_degrees(SpeedPercent(speed), SpeedPercent(speed), degrees)
+    # ------------------------------------------------------------------
+    # Grundlæggende bevægelser
+    # ------------------------------------------------------------------
 
-    def turn_90_degrees(self, direction='right', speed=20):
-        """Drej 90 grader på stedet"""
-        # Denne formel er et estimat. Du skal nok fintune 'degrees' tallet
-        # indtil robotten rammer præcis 90 grader på dit specifikke gulv.
-        arc_length = (self.track_width_mm * 3.1415) / 4
-        circumference = self.wheel_diameter_mm * 3.1415
-        wheel_degrees = (arc_length / circumference) * 360 * 2 # *2 pga. modsat rotation
-        
-        if direction == 'right':
-            self.tank.on_for_degrees(SpeedPercent(speed), SpeedPercent(-speed), wheel_degrees)
-        else:
-            self.tank.on_for_degrees(SpeedPercent(-speed), SpeedPercent(speed), wheel_degrees)
+    def move_forward(self, distance_cm: float) -> None:
+        """Kør ligeud den angivne afstand i cm."""
+        rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
+        self.tank.on_for_rotations(
+            SpeedPercent(MOTOR_SPEED),
+            SpeedPercent(MOTOR_SPEED),
+            rotations
+        )
 
-    def stop(self):
+    def turn_right_90(self) -> None:
+        """Drej 90 grader til højre på stedet (pivot-drej)."""
+        # Arc = (pi/4) * akselbredde  =>  begge hjul drejer modsatte veje
+        rotations = (math.pi * AXLE_TRACK_CM / 4) / WHEEL_CIRCUMFERENCE_CM
+        self.tank.on_for_rotations(
+            SpeedPercent(MOTOR_SPEED),   # venstre hjul fremad
+            SpeedPercent(-MOTOR_SPEED),  # højre hjul bagud
+            rotations
+        )
+
+    def turn_left_90(self) -> None:
+        """Drej 90 grader til venstre på stedet (pivot-drej)."""
+        rotations = (math.pi * AXLE_TRACK_CM / 4) / WHEEL_CIRCUMFERENCE_CM
+        self.tank.on_for_rotations(
+            SpeedPercent(-MOTOR_SPEED),  # venstre hjul bagud
+            SpeedPercent(MOTOR_SPEED),   # højre hjul fremad
+            rotations
+        )
+
+    def soft_turn_right(self, distance_cm: float) -> None:
+        """Blødt højresving: venstre hjul hurtigere end højre hjul."""
+        rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
+        self.tank.on_for_rotations(
+            SpeedPercent(MOTOR_SPEED),
+            SpeedPercent(MOTOR_SPEED // 3),  # fx 10% hvis MOTOR_SPEED=30
+            rotations
+        )
+
+    def soft_turn_left(self, distance_cm: float) -> None:
+        """Blødt venstresving: højre hjul hurtigere end venstre hjul."""
+        rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
+        self.tank.on_for_rotations(
+            SpeedPercent(MOTOR_SPEED // 3),
+            SpeedPercent(MOTOR_SPEED),
+            rotations
+        )
+
+    def stop(self) -> None:
+        """Stop begge motorer."""
         self.tank.off()

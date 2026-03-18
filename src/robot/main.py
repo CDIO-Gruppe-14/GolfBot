@@ -1,45 +1,65 @@
+"""
+GolfBot – statisk græsslåmaskine-rute
+======================================
+Banen er 1 x 1 meter.  Robotten starter i øverste venstre hjørne,
+kører til højre over hele banen, drejer ned, kører til venstre,
+drejer ned, kører til højre – osv., præcis som en græsslåmaskine.
+
+Mønster (set oppefra):
+    → → → → →
+              ↓
+    ← ← ← ← ←
+    ↓
+    → → → → →
+              ↓
+    ← ← ← ← ←
+    ...
+"""
+
 from motor_controller import MotorController
-import time
 
-# hjernen = den der ved hvilke baner der skal køres, og i hvilken rækkefølge, for at få robotten til at klippe græsset effektivt
+# --- Bane- og kørselsparametre (juster efter kalibrering) ---
+FIELD_WIDTH_CM   = 100   # banens bredde  (1 m)
+FIELD_HEIGHT_CM  = 100   # banens dybde   (1 m)
+STRIP_WIDTH_CM   = 20    # bredde pr. stribe (5 striber i alt)
+TURN_ARC_CM      = 12    # længde af hvert bløde kvart-sving
+TURN_CONNECT_CM  = 8     # lille lige stykke mellem de to sving
 
-def run_mowing_pattern():
-    robot = MotorController()
-    
-    baner = 8
-    bane_laengde_mm = 1000  # 1 meter
-    bane_afstand_mm = 125   # Afstand mellem baner (1 meter / 8 baner) = 12,5 cm mellem hver bane
 
-    print("Starter rute...")
+def _uturn_right(mc: MotorController) -> None:
+    """Blødt U-sving mod højre til næste stribe."""
+    mc.soft_turn_right(TURN_ARC_CM)
+    mc.move_forward(TURN_CONNECT_CM)
+    mc.soft_turn_right(TURN_ARC_CM)
 
-    for i in range(baner):
-        # Kør banen i frem
-        print(f"Kører bane {i+1}")
-        robot.drive_distance(bane_laengde_mm)
+def _uturn_left(mc: MotorController) -> None:
+    """Blødt U-sving mod venstre til næste stribe."""
+    mc.soft_turn_left(TURN_ARC_CM)
+    mc.move_forward(TURN_CONNECT_CM)
+    mc.soft_turn_left(TURN_ARC_CM)
 
-        # Hvis det er sidste bane, skal vi ikke dreje for en ny bane fordi at vi skal tilbage til start efter
-        if i < baner - 1:
-            if i % 2 == 0: # Lige baner: sving højre-højre
-                robot.turn_90_degrees('right')
-                robot.drive_distance(bane_afstand_mm)
-                robot.turn_90_degrees('right')
-            else:          # Ulige baner: sving venstre-venstre
-                robot.turn_90_degrees('left')
-                robot.drive_distance(bane_afstand_mm)
-                robot.turn_90_degrees('left')
-    
-    # Retur til start når alle baner er færdige
-    print("Returnerer til start...")
-    robot.turn_90_degrees('left')
-    robot.drive_distance(1000) # Kører den meter tilbage vi er kommet "ned"
-    robot.turn_90_degrees('left') # drejer for at være klar til genoptagning. Den burde nu være i startposition
-    
-    robot.stop()
-    print("Rute færdig!")
+def run_lawnmower_pattern() -> None:
+    """Kør det fulde græsslåmaskine-mønster over banen."""
+    mc = MotorController()
+
+    num_strips = int(FIELD_HEIGHT_CM / STRIP_WIDTH_CM)  # antal striber = 5
+
+    for i in range(num_strips):
+        # Kør én hel stribe på tværs af banen
+        mc.move_forward(FIELD_WIDTH_CM)
+
+        # Hvis det ikke er den sidste stribe: lav et U-sving ned
+        if i < num_strips - 1:
+            if i % 2 == 0:
+                # Lige striber (0, 2, 4, ...): retning → højre  →  U-sving til højre
+                _uturn_right(mc)
+            else:
+                # Ulige striber (1, 3, ...): retning ← venstre  →  U-sving til venstre
+                _uturn_left(mc)
+
+    mc.stop()
+    print("Rute afsluttet.")
+
 
 if __name__ == "__main__":
-    while (True): #vi kører i en uendelig løkke så robotten kører igeeen og igen, indtil vi stopper den manuelt
-        run_mowing_pattern()
-        
-        print("Venter 10 sekunder før næste rute...")
-        time.sleep(10)
+    run_lawnmower_pattern()
