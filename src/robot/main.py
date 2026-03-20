@@ -22,21 +22,21 @@ from motor_controller import MotorController
 FIELD_WIDTH_CM   = 100   # banens bredde  (1 m)
 FIELD_HEIGHT_CM  = 100   # banens dybde   (1 m)
 STRIP_WIDTH_CM   = 20    # bredde pr. stribe (5 striber i alt)
-TURN_ARC_CM      = 12    # længde af hvert bløde kvart-sving
-TURN_CONNECT_CM  = 8     # lille lige stykke mellem de to sving
+TURN_ARC_CM      = 50    # længde af hvert bløde kvart-sving
+TURN_CONNECT_CM  = 0     # lille lige stykke mellem de to sving
 
 
 def _uturn_right(mc: MotorController) -> None:
     """Blødt U-sving mod højre til næste stribe."""
     mc.soft_turn_right(TURN_ARC_CM)
-    mc.move_forward(TURN_CONNECT_CM)
-    mc.soft_turn_right(TURN_ARC_CM)
+    # mc.move_forward(TURN_CONNECT_CM)
+    # mc.soft_turn_right(TURN_ARC_CM)
 
 def _uturn_left(mc: MotorController) -> None:
     """Blødt U-sving mod venstre til næste stribe."""
     mc.soft_turn_left(TURN_ARC_CM)
-    mc.move_forward(TURN_CONNECT_CM)
-    mc.soft_turn_left(TURN_ARC_CM)
+    # mc.move_forward(TURN_CONNECT_CM)
+    # mc.soft_turn_left(TURN_ARC_CM)
 
 def run_lawnmower_pattern() -> None:
     """Kør det fulde græsslåmaskine-mønster over banen."""
