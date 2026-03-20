@@ -65,6 +65,17 @@ class MotorController:
             rotations
         )
 
+    def dodge_obstacle(self) -> None:
+        """En simpel manøvre for at undgå en forhindring: dreh, drej"""
+        self.turn_right_90()
+        self.move_forward(30)  # kør lidt frem for at komme udenom
+        self.turn_left_90()
+        self.move_forward(55)  # kør lidt frem for at komme helt udenom
+        self.turn_left_90()
+        self.move_forward(20)  # kør tilbage på linjen
+        self.turn_right_90()   # vend tilbage til oprindelig retning
+
     def stop(self) -> None:
         """Stop begge motorer."""
+        
         self.tank.off()

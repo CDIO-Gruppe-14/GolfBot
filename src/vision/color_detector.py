@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Optional
 import os
+import math
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask
 
@@ -173,3 +174,28 @@ if __name__ == "__main__":
                 break
     finally:
         camera.release()
+
+
+#finder objekt med størst farve dedektion fx rødt kors er den røde farve tydeligere/bonger mere ud end rødlig bordplade fx.
+def get_largest_result(results: list[DetectionResult]) -> Optional[DetectionResult]:
+    if not results:
+        return None
+    return max(results, key=lambda r: r.area)
+
+# Beregner afstand i cm mellem robot og forhindring baseret på deres detektionscentre i pixels og en kalibreret cm-per-pixel faktor.
+def distance_px(p1: tuple[int, int], p2: tuple[int, int]) -> float:
+    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+# Estimerer afstand i cm mellem robot og forhindring. Returnerer None hvis det ikke er muligt (fx ingen detektion).
+def estimate_obstacle_distance_cm(
+    robot_result: Optional[DetectionResult],
+    obstacle_result: Optional[DetectionResult],
+    cm_per_pixel: float
+) -> Optional[float]:
+    if not robot_result or not obstacle_result:
+        return None
+    if not robot_result.center or not obstacle_result.center:
+        return None
+
+    d_px = distance_px(robot_result.center, obstacle_result.center)
+    return d_px * cm_per_pixel
