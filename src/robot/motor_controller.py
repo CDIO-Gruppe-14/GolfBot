@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
-from ev3dev2.motor import LargeMotor, OUTPUT_D, OUTPUT_B, MoveTank, SpeedPercent
-
+from ev3dev2.motor import LargeMotor, OUTPUT_B, OUTPUT_D, MoveTank, SpeedPercent
+ 
 # --- Kalibreringskonstanter ---
 WHEEL_DIAMETER_CM  = 6.88                                  # hjuldiameter i cm
 WHEEL_CIRCUMFERENCE_CM = math.pi * WHEEL_DIAMETER_CM      # ~21,6 cm
@@ -10,10 +10,10 @@ MOTOR_SPEED        = 30     # hastighed i procent (0-100)
 
 
 class MotorController:
-    """Styrer EV3-tankdrevet (venstre motor: PORT D, højre motor: PORT B)."""
+    """Styrer EV3-tankdrevet (venstre motor: PORT B, højre motor: PORT D)."""
 
     def __init__(self):
-        self.tank = MoveTank(OUTPUT_D, OUTPUT_B)
+        self.tank = MoveTank(OUTPUT_B, OUTPUT_D)
 
     # ------------------------------------------------------------------
     # Grundlæggende bevægelser
@@ -52,7 +52,7 @@ class MotorController:
         rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
             SpeedPercent(MOTOR_SPEED),
-            SpeedPercent(MOTOR_SPEED // 3),  # fx 10% hvis MOTOR_SPEED=30
+            SpeedPercent(MOTOR_SPEED // 6),  # fx 10% hvis MOTOR_SPEED=30
             rotations
         )
 
@@ -60,7 +60,7 @@ class MotorController:
         """Blødt venstresving: højre hjul hurtigere end venstre hjul."""
         rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
-            SpeedPercent(MOTOR_SPEED // 3),
+            SpeedPercent(MOTOR_SPEED // 6),
             SpeedPercent(MOTOR_SPEED),
             rotations
         )
