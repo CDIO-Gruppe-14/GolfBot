@@ -1,65 +1,94 @@
+#!/usr/bin/env python3
 """
-GolfBot – statisk græsslåmaskine-rute
-======================================
-Banen er 1 x 1 meter.  Robotten starter i øverste venstre hjørne,
-kører til højre over hele banen, drejer ned, kører til venstre,
-drejer ned, kører til højre – osv., præcis som en græsslåmaskine.
+GolfBot — EV3 Kommando-lytter
+==============================
+Lytter på WiFi-kommandoer fra PC'en og udfører dem via MotorController.
 
-Mønster (set oppefra):
-    → → → → →
-              ↓
-    ← ← ← ← ←
-    ↓
-    → → → → →
-              ↓
-    ← ← ← ← ←
-    ...
+Kommandoer der håndteres:
+  FORWARD <cm>  — Kør ligeud
+  TURN <grader> — Drej vilkårlig vinkel (positiv=højre, negativ=venstre)
+  HEADING       — Svar med gyro-sensor vinkel
+  STOP          — Stop og luk loop
+  COLLECT       — (stub — collector ikke implementeret endnu)
 """
+
+import sys
+import os
+
+# Gør src-roden tilgængelig for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from motor_controller import MotorController
+from src.communication.connection import RobotServer
+from src.communication.protocol import decode_command, encode_command, DONE, ERROR
 
-# --- Bane- og kørselsparametre (juster efter kalibrering) ---
-FIELD_WIDTH_CM   = 100   # banens bredde  (1 m)
-FIELD_HEIGHT_CM  = 100   # banens dybde   (1 m)
-STRIP_WIDTH_CM   = 20    # bredde pr. stribe (5 striber i alt)
-TURN_ARC_CM      = 50    # længde af hvert bløde kvart-sving
-TURN_CONNECT_CM  = 0     # lille lige stykke mellem de to sving
+# Gyro-sensor fra ev3dev2
+from ev3dev2.sensor.lego import GyroSensor
+from ev3dev2.sensor import INPUT_2
 
 
-def _uturn_right(mc: MotorController) -> None:
-    """Blødt U-sving mod højre til næste stribe."""
-    mc.soft_turn_right(TURN_ARC_CM)
-    # mc.move_forward(TURN_CONNECT_CM)
-    # mc.soft_turn_right(TURN_ARC_CM)
+def command_loop(server, mc, gyro):
+    """
+    Hoved-loop: modtager kommandoer fra PC'en og udfører dem.
 
-def _uturn_left(mc: MotorController) -> None:
-    """Blødt U-sving mod venstre til næste stribe."""
-    mc.soft_turn_left(TURN_ARC_CM)
-    # mc.move_forward(TURN_CONNECT_CM)
-    # mc.soft_turn_left(TURN_ARC_CM)
+    :param server: RobotServer instans (WiFi-forbindelse)
+    :param mc:     MotorController instans
+    :param gyro:   GyroSensor instans
+    """
+    print("Klar — venter på kommandoer...")
 
-def run_lawnmower_pattern() -> None:
-    """Kør det fulde græsslåmaskine-mønster over banen."""
-    mc = MotorController()
+    while True:
+        raw = server.receive_message()
+        if raw is None:
+            print("Forbindelse mistet.")
+            break
 
-    num_strips = int(FIELD_HEIGHT_CM / STRIP_WIDTH_CM)  # antal striber = 5
+        cmd, value = decode_command(raw)
+        print(f"Modtog: {cmd!r} | Værdi: {value}")
 
-    for i in range(num_strips):
-        # Kør én hel stribe på tværs af banen
-        mc.move_forward(FIELD_WIDTH_CM)
+        if cmd == "FORWARD":
+            mc.move_forward(value)
+            server.send_reply(DONE)
 
-        # Hvis det ikke er den sidste stribe: lav et U-sving ned
-        if i < num_strips - 1:
-            if i % 2 == 0:
-                # Lige striber (0, 2, 4, ...): retning → højre  →  U-sving til højre
-                _uturn_right(mc)
-            else:
-                # Ulige striber (1, 3, ...): retning ← venstre  →  U-sving til venstre
-                _uturn_left(mc)
+        elif cmd == "TURN":
+            mc.turn(value)
+            server.send_reply(DONE)
 
-    mc.stop()
-    print("Rute afsluttet.")
+        elif cmd == "HEADING":
+            heading = gyro.angle
+            server.send_reply(encode_command("HEADING", heading))
+
+        elif cmd == "STOP":
+            mc.stop()
+            server.send_reply(DONE)
+            break
+
+        elif cmd == "COLLECT":
+            # TODO: implementér collector.collect() når collector.py er færdig
+            server.send_reply(DONE)
+
+        else:
+            print(f"Ukendt kommando: {cmd!r}")
+            server.send_reply(ERROR)
+
+
+def main():
+    server = RobotServer()
+    mc     = MotorController()
+    gyro   = GyroSensor(INPUT_2)
+    gyro.mode = 'GYRO-ANG'
+    gyro.reset()  # nulstil heading ved opstart
+
+    print("GolfBot EV3 — venter på forbindelse...")
+    server.wait_for_connection()
+
+    try:
+        command_loop(server, mc, gyro)
+    finally:
+        mc.stop()
+        server.close()
+        print("Robot afsluttet.")
 
 
 if __name__ == "__main__":
-    run_lawnmower_pattern()
+    main()

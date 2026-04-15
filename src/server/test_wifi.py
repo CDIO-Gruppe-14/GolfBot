@@ -5,9 +5,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.communication.connection import PCClient
-
-# IP-adressen for robotten (172.20.10.2 fra din tidligere besked)
-ROBOT_IP = "172.20.10.2"
+from config import ROBOT_IP
 
 def main():
     print("--- Starter WiFi Test (PC Client) ---")

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 import math
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import WHEEL_DIAMETER_CM, AXLE_TRACK_CM, MOTOR_SPEED
+
 from ev3dev2.motor import LargeMotor, OUTPUT_B, OUTPUT_D, MoveTank, SpeedPercent
- 
-# --- Kalibreringskonstanter ---
-WHEEL_DIAMETER_CM  = 6.88                                  # hjuldiameter i cm
+
+# --- Beregnede konstanter (afledt af config) ---
 WHEEL_CIRCUMFERENCE_CM = math.pi * WHEEL_DIAMETER_CM      # ~21,6 cm
-AXLE_TRACK_CM      = 12.0   # afstand mellem hjulcentrene
-MOTOR_SPEED        = 30     # hastighed i procent (0-100)
 
 
 class MotorController:
@@ -64,6 +67,17 @@ class MotorController:
             SpeedPercent(MOTOR_SPEED),
             rotations
         )
+
+    def turn(self, degrees: float) -> None:
+        """Drej en vilkårlig vinkel på stedet. Positiv=højre, negativ=venstre."""
+        arc_length = abs(degrees) / 360.0 * math.pi * AXLE_TRACK_CM
+        rotations  = arc_length / WHEEL_CIRCUMFERENCE_CM
+        if degrees > 0:
+            self.tank.on_for_rotations(
+                SpeedPercent(MOTOR_SPEED), SpeedPercent(-MOTOR_SPEED), rotations)
+        else:
+            self.tank.on_for_rotations(
+                SpeedPercent(-MOTOR_SPEED), SpeedPercent(MOTOR_SPEED), rotations)
 
     def stop(self) -> None:
         """Stop begge motorer."""

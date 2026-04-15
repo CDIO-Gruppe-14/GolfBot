@@ -1,5 +1,10 @@
 import cv2
 import time
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import CAMERA_INDEX, CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT
 
 # For at kunne launche kameraet skal man køre disse to kommandoer i terminalen:
 # pip install -r requirements.txt
@@ -8,10 +13,10 @@ import time
 # Tryk 'q' for at lukke kameraet ned
 
 class RobotCamera:
-    def __init__(self, camera_index=0):
+    def __init__(self, camera_index=CAMERA_INDEX):
         self.cap = cv2.VideoCapture(camera_index)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
         self.prev_time = 0
 
     def get_frame(self):

@@ -4,6 +4,10 @@ import json
 from dataclasses import dataclass
 from typing import Optional
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import COLOR_MIN_AREA, MORPH_KERNEL_SIZE
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask
 
@@ -20,7 +24,7 @@ class DetectionResult:
 
 
 class ColorDetector:
-    def __init__(self, min_area: int = 300):
+    def __init__(self, min_area: int = COLOR_MIN_AREA):
         self.profiles: dict[str, dict] = {}
         self.min_area = min_area
 
@@ -60,7 +64,7 @@ class ColorDetector:
         lower = np.array(profile["lower"], dtype=np.uint8)
         upper = np.array(profile["upper"], dtype=np.uint8)
         mask = cv2.inRange(hsv_frame, lower, upper)
-        kernel = np.ones((5, 5), np.uint8)
+        kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), np.uint8)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         return mask
@@ -134,7 +138,7 @@ if __name__ == "__main__":
         (255, 255, 0), (0, 255, 255), (255, 0, 255),
     ]
 
-    detector = ColorDetector(min_area=500)
+    detector = ColorDetector()
 
     # Hvis et profil-navn angives som argument, brug kun det — ellers indlæs alle
     if len(sys.argv) > 1:

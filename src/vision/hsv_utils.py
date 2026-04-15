@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
 import os
+import sys
 
-PROFILES_DIR = "color_profiles"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import PROFILES_DIR, MORPH_KERNEL_SIZE
 
 
 def build_hsv_mask(hsv_frame, h, s, v, h_tol, s_tol, v_tol):
@@ -21,7 +23,7 @@ def build_hsv_mask(hsv_frame, h, s, v, h_tol, s_tol, v_tol):
         hi2 = np.array([h + h_tol - 180, upper[1], upper[2]])
         mask |= cv2.inRange(hsv_frame, lo2, hi2)
 
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     return mask

@@ -1,9 +1,10 @@
 import socket
 import time
+import sys
+import os
 
-# Standard indstillinger
-PORT = 12345
-BUFFER_SIZE = 1024
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import PORT, BUFFER_SIZE, MAX_RETRIES, CONNECT_TIMEOUT_SEC, RETRY_DELAY_SEC
 
 class RobotServer:
     """
@@ -86,20 +87,20 @@ class PCClient:
         self.robot_ip = robot_ip
         self.client_socket = None
         
-    def connect_to_robot(self, max_retries=5):
+    def connect_to_robot(self, max_retries=MAX_RETRIES):
         """Forsoeger at forbinde til robotten med genforsoeg."""
         for attempt in range(max_retries):
             try:
                 print("[{}/{}] Ringer til EV3 paa IP: {}...".format(attempt+1, max_retries, self.robot_ip))
                 self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.client_socket.settimeout(5.0) # Giv op efter 5 sek
+                self.client_socket.settimeout(CONNECT_TIMEOUT_SEC)
                 self.client_socket.connect((self.robot_ip, PORT))
                 self.client_socket.settimeout(None) # Slaa timeout fra, naar vi er forbundet
                 print("Forbundet!")
                 return True
             except Exception as e:
-                print("Kunne ikke forbinde: {}. Proever om 2 sekunder...".format(e))
-                time.sleep(2)
+                print("Kunne ikke forbinde: {}. Proever om {} sekunder...".format(e, RETRY_DELAY_SEC))
+                time.sleep(RETRY_DELAY_SEC)
         
         print("Fejl: Kunne ikke faa kontakt til EV3'en!")
         return False
