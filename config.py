@@ -134,3 +134,7 @@ MIN_TURN_DEGREES = 2.0
 # Mindste afstand der sendes som FORWARD-kommando (cm)
 # Stop hvis vi allerede er tæt nok på bolden
 MIN_DISTANCE_CM = 3.0
+
+# Max afstand robotten må køre fremad pr. iteration (cm).
+# Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
+MAX_STEP_CM = 20.0
