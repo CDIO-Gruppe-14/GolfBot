@@ -19,7 +19,7 @@ def test_collector():
         print("Fejl:", e)
         return
 
-    print(f"Kører forlæns i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
+    print(f"Koerer forlaens i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
     collector.on(SpeedPercent(COLLECTOR_SPEED))
     time.sleep(10)
     
@@ -27,7 +27,7 @@ def test_collector():
     collector.off()
     time.sleep(1)
 
-    print(f"Kører baglæns i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
+    print(f"Koerer baglaens i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
     # Sætter minus foran hastigheden for at køre baglæns
     collector.on(SpeedPercent(-COLLECTOR_SPEED))
     time.sleep(10)
