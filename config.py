@@ -52,8 +52,8 @@ MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
-MOTOR_LEFT_PORT  = "OUTPUT_B"   # Port for venstre motor
-MOTOR_RIGHT_PORT = "OUTPUT_D"   # Port for højre motor
+MOTOR_LEFT_PORT  = "B"   # Port for venstre motor
+MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 
 # Opsamlingsmotor
 # Brugt i: src/robot/test_zcollector.py
@@ -62,7 +62,7 @@ COLLECTOR_SPEED      = 60         # Hastighed i procent (0-100)
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
-GYRO_PORT = "INPUT_2"
+GYRO_PORT = "2"
 
 
 # ===========================================================================

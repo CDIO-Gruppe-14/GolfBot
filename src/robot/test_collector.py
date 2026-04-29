@@ -3,7 +3,7 @@ import time
 import sys
 import os
 
-# Tilføj roden af projektet til sys.path så vi kan importere config
+# Tilfoej roden af projektet til sys.path saa vi kan importere config
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import COLLECTOR_MOTOR_PORT, COLLECTOR_SPEED
 
@@ -28,7 +28,7 @@ def test_collector():
     time.sleep(1)
 
     print("Koerer baglaens i 10 sekunder med {}% hastighed...".format(COLLECTOR_SPEED))
-    # Sætter minus foran hastigheden for at køre baglæns
+    # Saetter minus foran hastigheden for at koere baglaens
     collector.on(SpeedPercent(COLLECTOR_SPEED))
     time.sleep(20)
 

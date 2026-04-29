@@ -1,41 +1,42 @@
 #!/usr/bin/env python3
 """
-GolfBot — EV3 Kommando-lytter
+GolfBot -- EV3 Kommando-lytter
 ==============================
-Lytter på WiFi-kommandoer fra PC'en og udfører dem via MotorController.
+Lytter paa WiFi-kommandoer fra PC'en og udfoerer dem via MotorController.
 
-Kommandoer der håndteres:
-  FORWARD <cm>  — Kør ligeud
-  TURN <grader> — Drej vilkårlig vinkel (positiv=højre, negativ=venstre)
-  HEADING       — Svar med gyro-sensor vinkel
-  STOP          — Stop og luk loop
-  COLLECT       — (stub — collector ikke implementeret endnu)
+Kommandoer der haandteres:
+  FORWARD <cm>  -- Koer ligeud
+  TURN <grader> -- Drej vilkaarlig vinkel (positiv=hoejre, negativ=venstre)
+  HEADING       -- Svar med gyro-sensor vinkel
+  STOP          -- Stop og luk loop
+  COLLECT       -- (stub -- collector ikke implementeret endnu)
 """
 
 import sys
 import os
 
-# Gør src-roden tilgængelig for imports
+# Goer src-roden tilgaengelig for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from config import GYRO_PORT
 from motor_controller import MotorController
 from src.communication.connection import RobotServer
 from src.communication.protocol import decode_command, encode_command, DONE, ERROR
 
 # Gyro-sensor fra ev3dev2
 from ev3dev2.sensor.lego import GyroSensor
-from ev3dev2.sensor import INPUT_2
 
 
 def command_loop(server, mc, gyro):
     """
-    Hoved-loop: modtager kommandoer fra PC'en og udfører dem.
+    Hoved-loop: modtager kommandoer fra PC'en og udfoerer dem.
 
     :param server: RobotServer instans (WiFi-forbindelse)
     :param mc:     MotorController instans
     :param gyro:   GyroSensor instans
     """
-    print("Klar — venter på kommandoer...")
+    print("Klar -- venter paa kommandoer...")
 
     while True:
         raw = server.receive_message()
@@ -44,7 +45,7 @@ def command_loop(server, mc, gyro):
             break
 
         cmd, value = decode_command(raw)
-        print(f"Modtog: {cmd!r} | Værdi: {value}")
+        print(f"Modtog: {cmd!r} | Vaerdi: {value}")
 
         if cmd == "FORWARD":
             mc.move_forward(value)
@@ -64,7 +65,7 @@ def command_loop(server, mc, gyro):
             break
 
         elif cmd == "COLLECT":
-            # TODO: implementér collector.collect() når collector.py er færdig
+            # TODO: implementer collector.collect() naar collector.py er faerdig
             server.send_reply(DONE)
 
         else:
@@ -75,11 +76,11 @@ def command_loop(server, mc, gyro):
 def main():
     server = RobotServer()
     mc     = MotorController()
-    gyro   = GyroSensor(INPUT_2)
+    gyro   = GyroSensor(GYRO_PORT)
     gyro.mode = 'GYRO-ANG'
     gyro.reset()  # nulstil heading ved opstart
 
-    print("GolfBot EV3 — venter på forbindelse...")
+    print("GolfBot EV3 -- venter paa forbindelse...")
     server.wait_for_connection()
 
     try:
