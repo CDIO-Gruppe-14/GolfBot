@@ -82,7 +82,7 @@ CAMERA_FRAME_HEIGHT = 480   # Højde i pixels
 # Brugt i: src/vision/hsv_utils.py       (linje 5)
 
 # Minimalt areal i pixels² for at en farvedetektion gælder
-COLOR_MIN_AREA = 300
+COLOR_MIN_AREA = 40
 
 # Sti til mappen med kalibrerede HSV-profiler (.json filer)
 # Brugt i: src/vision/hsv_utils.py  (linje 5)

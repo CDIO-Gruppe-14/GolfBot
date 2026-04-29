@@ -16,7 +16,10 @@ Start:
 import sys
 import os
 
+# src/ mappen (til relative imports inden i src/)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Projekt-rod (til 'from src.vision...' og 'from config import...')
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.vision.camera import RobotCamera
 from src.vision.color_detector import ColorDetector

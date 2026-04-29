@@ -36,11 +36,11 @@ def encode_command(cmd: str, value: float = None) -> str:
         encode_command("HEADING")        →  "HEADING\\n"
     """
     if value is not None:
-        return f"{cmd} {value}\n"
-    return f"{cmd}\n"
+        return "{} {}\n".format(cmd, value)
+    return "{}\n".format(cmd)
 
 
-def decode_command(raw: str) -> tuple[str, float | None]:
+def decode_command(raw):
     """
     Parser en modtaget streng fra socket.
 
@@ -56,5 +56,8 @@ def decode_command(raw: str) -> tuple[str, float | None]:
     if not parts:
         return (ERROR, None)
     cmd = parts[0].upper()
-    value = float(parts[1]) if len(parts) > 1 else None
+    try:
+        value = float(parts[1]) if len(parts) > 1 else None
+    except (ValueError, IndexError):
+        value = None
     return cmd, value

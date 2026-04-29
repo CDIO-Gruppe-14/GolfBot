@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from config import GYRO_PORT
 from motor_controller import MotorController
-from src.communication.connection import RobotServer
-from src.communication.protocol import decode_command, encode_command, DONE, ERROR
+from communication.connection import RobotServer
+from communication.protocol import decode_command, encode_command, DONE, ERROR
 
 # Gyro-sensor fra ev3dev2
 from ev3dev2.sensor.lego import GyroSensor
@@ -45,7 +45,7 @@ def command_loop(server, mc, gyro):
             break
 
         cmd, value = decode_command(raw)
-        print(f"Modtog: {cmd!r} | Vaerdi: {value}")
+        print("Modtog: {!r} | Vaerdi: {}".format(cmd, value))
 
         if cmd == "FORWARD":
             mc.move_forward(value)
@@ -69,7 +69,7 @@ def command_loop(server, mc, gyro):
             server.send_reply(DONE)
 
         else:
-            print(f"Ukendt kommando: {cmd!r}")
+            print("Ukendt kommando: {!r}".format(cmd))
             server.send_reply(ERROR)
 
 

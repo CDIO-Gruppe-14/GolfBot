@@ -12,8 +12,9 @@ def main():
     client = PCClient(ROBOT_IP)
     
     if client.connect_to_robot():
-        print("Forbundet! Sender besked...")
-        client.send_command("Tester 1-2-3 fra PC!")
+        print("Forbundet! Sender HEADING kommando...")
+        from src.communication.protocol import encode_command
+        client.send_command(encode_command("HEADING"))
         
         print("Venter på svar...")
         svar = client.wait_for_reply()

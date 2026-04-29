@@ -25,6 +25,7 @@ class RobotCamera:
         self.cap = self._open_camera(camera_index)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+        self._target_size = (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT)
         self.prev_time = 0
 
     @staticmethod
@@ -59,7 +60,14 @@ class RobotCamera:
 
     def get_frame(self):
         ret, frame = self.cap.read()
-        return frame if ret else None
+        if not ret:
+            return None
+        # Tving frame til konfigureret stoerrelse (DirectShow kan ignorere cap.set)
+        h, w = frame.shape[:2]
+        tw, th = self._target_size
+        if w != tw or h != th:
+            frame = cv2.resize(frame, (tw, th))
+        return frame
 
     def get_fps(self):
         """Beregner Frames Per Second."""

@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 import json
 import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask, hsv_bounds
 

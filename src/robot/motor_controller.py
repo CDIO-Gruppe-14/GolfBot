@@ -22,7 +22,7 @@ class MotorController:
     # Grundlaeggende bevaegelser
     # ------------------------------------------------------------------
 
-    def move_forward(self, distance_cm: float) -> None:
+    def move_forward(self, distance_cm):
         """Koer ligeud den angivne afstand i cm."""
         rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
@@ -31,7 +31,7 @@ class MotorController:
             rotations
         )
 
-    def turn_right_90(self) -> None:
+    def turn_right_90(self):
         """Drej 90 grader til hoejre paa stedet (pivot-drej)."""
         # Arc = (pi/4) * akselbredde  =>  begge hjul drejer modsatte veje
         rotations = (math.pi * AXLE_TRACK_CM / 4) / WHEEL_CIRCUMFERENCE_CM
@@ -41,7 +41,7 @@ class MotorController:
             rotations
         )
 
-    def turn_left_90(self) -> None:
+    def turn_left_90(self):
         """Drej 90 grader til venstre paa stedet (pivot-drej)."""
         rotations = (math.pi * AXLE_TRACK_CM / 4) / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
@@ -50,7 +50,7 @@ class MotorController:
             rotations
         )
 
-    def soft_turn_right(self, distance_cm: float) -> None:
+    def soft_turn_right(self, distance_cm):
         """Bloedt hoejresving: venstre hjul hurtigere end hoejre hjul."""
         rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
@@ -59,7 +59,7 @@ class MotorController:
             rotations
         )
 
-    def soft_turn_left(self, distance_cm: float) -> None:
+    def soft_turn_left(self, distance_cm):
         """Bloedt venstresving: hoejre hjul hurtigere end venstre hjul."""
         rotations = distance_cm / WHEEL_CIRCUMFERENCE_CM
         self.tank.on_for_rotations(
@@ -68,7 +68,7 @@ class MotorController:
             rotations
         )
 
-    def turn(self, degrees: float) -> None:
+    def turn(self, degrees):
         """Drej en vilkaarlig vinkel paa stedet. Positiv=hoejre, negativ=venstre."""
         arc_length = abs(degrees) / 360.0 * math.pi * AXLE_TRACK_CM
         rotations  = arc_length / WHEEL_CIRCUMFERENCE_CM
@@ -79,6 +79,6 @@ class MotorController:
             self.tank.on_for_rotations(
                 SpeedPercent(-MOTOR_SPEED), SpeedPercent(MOTOR_SPEED), rotations)
 
-    def stop(self) -> None:
+    def stop(self):
         """Stop begge motorer."""
         self.tank.off()
