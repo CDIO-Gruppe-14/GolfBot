@@ -55,6 +55,11 @@ MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
 MOTOR_LEFT_PORT  = "OUTPUT_B"   # Port for venstre motor
 MOTOR_RIGHT_PORT = "OUTPUT_D"   # Port for højre motor
 
+# Opsamlingsmotor
+# Brugt i: src/robot/test_collector.py
+COLLECTOR_MOTOR_PORT = "OUTPUT_A" # Port for opsamler (ret til A eller C)
+COLLECTOR_SPEED      = 50         # Hastighed i procent (0-100)
+
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
 GYRO_PORT = "INPUT_2"
@@ -102,7 +107,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (180, 120)
+FIELD_SIZE_CM = (180, 120 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
