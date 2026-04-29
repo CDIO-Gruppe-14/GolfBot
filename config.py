@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.2"
+ROBOT_IP    = "172.20.10.4"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -56,9 +56,9 @@ MOTOR_LEFT_PORT  = "OUTPUT_B"   # Port for venstre motor
 MOTOR_RIGHT_PORT = "OUTPUT_D"   # Port for højre motor
 
 # Opsamlingsmotor
-# Brugt i: src/robot/test_collector.py
-COLLECTOR_MOTOR_PORT = "OUTPUT_A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 50         # Hastighed i procent (0-100)
+# Brugt i: src/robot/test_zcollector.py
+COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
+COLLECTOR_SPEED      = 60         # Hastighed i procent (0-100)
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)

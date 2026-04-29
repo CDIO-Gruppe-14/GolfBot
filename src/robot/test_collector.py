@@ -10,27 +10,27 @@ from config import COLLECTOR_MOTOR_PORT, COLLECTOR_SPEED
 from ev3dev2.motor import MediumMotor, SpeedPercent
 
 def test_collector():
-    print("Initialiserer opsamlingsmotor på port:", COLLECTOR_MOTOR_PORT)
+    print("Initialiserer opsamlingsmotor paa port:", COLLECTOR_MOTOR_PORT)
     try:
-        # Hvis I bruger en stor motor til opsamleren, så ret MediumMotor til LargeMotor
+        # Vi bruger porten fra config.py
         collector = MediumMotor(COLLECTOR_MOTOR_PORT)
     except Exception as e:
         print("Kunne ikke finde motoren. Tjek at den er tilsluttet port", COLLECTOR_MOTOR_PORT)
         print("Fejl:", e)
         return
 
-    print(f"Koerer forlaens i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
-    collector.on(SpeedPercent(COLLECTOR_SPEED))
-    time.sleep(10)
+    print("Koerer forlaens i 10 sekunder med {}% hastighed...".format(COLLECTOR_SPEED))
+    collector.on(SpeedPercent(-COLLECTOR_SPEED))
+    time.sleep(20)
     
     print("Stopper motoren...")
     collector.off()
     time.sleep(1)
 
-    print(f"Koerer baglaens i 10 sekunder med {COLLECTOR_SPEED}% hastighed...")
+    print("Koerer baglaens i 10 sekunder med {}% hastighed...".format(COLLECTOR_SPEED))
     # Sætter minus foran hastigheden for at køre baglæns
-    collector.on(SpeedPercent(-COLLECTOR_SPEED))
-    time.sleep(10)
+    collector.on(SpeedPercent(COLLECTOR_SPEED))
+    time.sleep(20)
 
     print("Stopper motoren...")
     collector.off()
