@@ -100,6 +100,11 @@ MARKER_COLOR = "green"
 # Brugt i: src/vision/color_detector.py  (linje 63) og hsv_utils.py  (linje 24)
 MORPH_KERNEL_SIZE = 5
 
+# Mindste cirkularitet for at en detektion kan betragtes som en rund bold
+# (4*pi*area / perimeter^2). Værdier 0.6-0.8 fungerer typisk for næsten-runde objekter.
+# Brugt i: src/vision/ball_detector.py
+BALL_MIN_CIRCULARITY = 0.6
+
 
 # ===========================================================================
 # 5. BANE (FieldMap)

@@ -1,11 +1,12 @@
 import math
 import sys
 import os
+import cv2
 from dataclasses import dataclass, field
 from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import BALL_COLORS
+from config import BALL_COLORS, BALL_MIN_CIRCULARITY
 
 
 @dataclass
@@ -44,13 +45,23 @@ class BallDetector:
             if color not in self.detector.profiles:
                 continue
             for r in self.detector.detect_all(frame, color):
-                if r.found and r.center is not None:
-                    balls.append(BallPosition(
-                        x=r.center[0],
-                        y=r.center[1],
-                        color=color,
-                        area=r.area,
-                    ))
+                if not (r.found and r.center is not None and r.contour is not None):
+                    continue
+
+                # Filtrer ikke-runde objekter vha. cirkularitet
+                perim = cv2.arcLength(r.contour, True)
+                if perim <= 0:
+                    continue
+                circularity = 4 * math.pi * r.area / (perim * perim)
+                if circularity < BALL_MIN_CIRCULARITY:
+                    continue
+
+                balls.append(BallPosition(
+                    x=r.center[0],
+                    y=r.center[1],
+                    color=color,
+                    area=r.area,
+                ))
 
         # Orange øverst, derefter størst areal
         balls.sort(key=lambda b: (0 if b.color == "orange" else 1, -b.area))
