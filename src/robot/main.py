@@ -19,22 +19,17 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from config import GYRO_PORT
 from motor_controller import MotorController
 from communication.connection import RobotServer
 from communication.protocol import decode_command, encode_command, DONE, ERROR
 
-# Gyro-sensor fra ev3dev2
-from ev3dev2.sensor.lego import GyroSensor
 
-
-def command_loop(server, mc, gyro):
+def command_loop(server, mc):
     """
     Hoved-loop: modtager kommandoer fra PC'en og udfoerer dem.
 
     :param server: RobotServer instans (WiFi-forbindelse)
     :param mc:     MotorController instans
-    :param gyro:   GyroSensor instans
     """
     print("Klar -- venter paa kommandoer...")
 
@@ -56,8 +51,8 @@ def command_loop(server, mc, gyro):
             server.send_reply(DONE)
 
         elif cmd == "HEADING":
-            heading = gyro.angle
-            server.send_reply(encode_command("HEADING", heading))
+            # Gyro ikke tilsluttet -- server bruger kamera i stedet
+            server.send_reply(DONE)
 
         elif cmd == "STOP":
             mc.stop()
@@ -76,15 +71,12 @@ def command_loop(server, mc, gyro):
 def main():
     server = RobotServer()
     mc     = MotorController()
-    gyro   = GyroSensor(GYRO_PORT)
-    gyro.mode = 'GYRO-ANG'
-    gyro.reset()  # nulstil heading ved opstart
 
     print("GolfBot EV3 -- venter paa forbindelse...")
     server.wait_for_connection()
 
     try:
-        command_loop(server, mc, gyro)
+        command_loop(server, mc)
     finally:
         mc.stop()
         server.close()
