@@ -32,6 +32,7 @@ from src.communication.connection import PCClient
 from src.communication.protocol import encode_command
 
 from src.planning.command_generator import compute_turn_only, compute_forward_step
+from src.planning.strategy import PickupPlanner
 
 from config import ROBOT_IP, MARKER_COLOR, MIN_TURN_DEGREES, MIN_DISTANCE_CM
 
@@ -43,8 +44,9 @@ def get_fresh_frame(camera, flushes=5):
     return camera.get_frame()
 
 
-def find_robot_and_ball(camera, tracker, ball_det, field_map):
-    """Tag et NYT billede og find robot + bold. Returnerer (rx, ry, bx, by) eller None."""
+def capture_scene(camera, tracker, ball_det):
+    """Tag et friskt billede og find robot + alle bolde."""
+
     frame = get_fresh_frame(camera)
     if frame is None:
         return None
@@ -53,13 +55,21 @@ def find_robot_and_ball(camera, tracker, ball_det, field_map):
     if robot is None:
         return None
 
-    ball = ball_det.find_nearest_ball(frame, robot_pos=(robot.x, robot.y))
-    if ball is None:
-        return None
+    balls = ball_det.find_all_balls(frame)
+    return frame, robot, balls
 
-    rx, ry = field_map.pixel_to_cm(robot.x, robot.y)
-    bx, by = field_map.pixel_to_cm(ball.x, ball.y)
-    return (rx, ry, bx, by)
+
+def confirm_pickup(camera, tracker, ball_det, planner, checks=2):
+    """Bekræft at den aktive bold er væk i et par friske frames."""
+
+    for _ in range(checks):
+        scene = capture_scene(camera, tracker, ball_det)
+        if scene is None:
+            continue
+        _frame, _robot, balls = scene
+        if planner.target_is_visible(balls):
+            return False
+    return True
 
 
 def main():
@@ -71,6 +81,7 @@ def main():
     tracker   = RobotTracker(detector, marker_color=MARKER_COLOR)
     ball_det  = BallDetector(detector)
     field_map = FieldMap()
+    planner   = PickupPlanner(field_map=field_map)
     client    = PCClient(ROBOT_IP)
 
     print("Forbinder til EV3...")
@@ -89,13 +100,24 @@ def main():
             iteration += 1
             time.sleep(0.4)
 
-            # --- Find robot og bold ---
-            result = find_robot_and_ball(camera, tracker, ball_det, field_map)
-            if result is None:
+            # --- Find robot og alle bolde ---
+            scene = capture_scene(camera, tracker, ball_det)
+            if scene is None:
                 print("[{}] Kan ikke finde robot eller bold...".format(iteration))
                 continue
 
-            rx, ry, bx, by = result
+            _frame, robot, balls = scene
+            if not balls:
+                print("[{}] Ingen bolde synlige lige nu.".format(iteration))
+                continue
+
+            rx, ry = field_map.pixel_to_cm(robot.x, robot.y)
+            target = planner.choose_target(balls, (rx, ry))
+            if target is None:
+                print("[{}] Ingen aktive mål at følge.".format(iteration))
+                continue
+
+            bx, by = field_map.pixel_to_cm(target.x, target.y)
 
             # --- INITIAL KALIBRERING ---
             # Hvis vi ikke kender vinklen, koer fremad for at maale den.
@@ -105,9 +127,10 @@ def main():
                 client.wait_for_reply()
                 time.sleep(0.5)
 
-                result_after = find_robot_and_ball(camera, tracker, ball_det, field_map)
+                result_after = capture_scene(camera, tracker, ball_det)
                 if result_after is not None:
-                    new_rx, new_ry, _, _ = result_after
+                    _frame_after, new_robot, _balls_after = result_after
+                    new_rx, new_ry = field_map.pixel_to_cm(new_robot.x, new_robot.y)
                     dx = new_rx - rx
                     dy = new_ry - ry
                     if math.hypot(dx, dy) > 3.0:
@@ -131,8 +154,15 @@ def main():
                 print("[{}] >>> BOLD NAAET! <<<".format(iteration))
                 client.send_command(encode_command("COLLECT"))
                 client.wait_for_reply()
-                time.sleep(1.0)
-                estimated_heading = None  # Nulstil efter indsamling (vi ved ikke hvor vi peger)
+                time.sleep(0.8)
+
+                if confirm_pickup(camera, tracker, ball_det, planner):
+                    picked = planner.confirm_pickup()
+                    if picked is not None:
+                        print("[{}] Pickup bekræftet: {}".format(iteration, picked.color))
+                    estimated_heading = None  # Nulstil efter indsamling (vi ved ikke hvor vi peger)
+                else:
+                    print("[{}] Pickup ikke bekræftet endnu — beholder nuvaerende maal.".format(iteration))
                 continue
 
             # --- FASE 1: DREJ hvis vinklen er for stor ---
@@ -155,9 +185,10 @@ def main():
             time.sleep(0.4)
 
             # Opdater heading ud fra det nye ryk
-            result_after = find_robot_and_ball(camera, tracker, ball_det, field_map)
+            result_after = capture_scene(camera, tracker, ball_det)
             if result_after is not None:
-                new_rx, new_ry, _, _ = result_after
+                _frame_after, new_robot, _balls_after = result_after
+                new_rx, new_ry = field_map.pixel_to_cm(new_robot.x, new_robot.y)
                 dx = new_rx - rx
                 dy = new_ry - ry
                 if math.hypot(dx, dy) > 3.0:
