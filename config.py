@@ -96,6 +96,11 @@ BALL_COLORS = ["orange", "white"]
 # Brugt i: src/server/main.py  og  src/vision/robot_tracker.py
 MARKER_COLOR = "green"
 
+# Sekundær markør på bagsiden af robotten for direkte heading-måling.
+# Sæt til None for single-markør mode (heading beregnes fra bevægelse).
+# Sæt til f.eks. "blue" når I monterer en anden farvet markør bag på robotten.
+MARKER_COLOR_BACK = "blue"
+
 # Morfologi kernel-størrelse til støjreduktion i masker
 # Brugt i: src/vision/color_detector.py  (linje 63) og hsv_utils.py  (linje 24)
 MORPH_KERNEL_SIZE = 5
@@ -135,6 +140,15 @@ MIN_TURN_DEGREES = 2.0
 # Stop hvis vi allerede er tæt nok på bolden
 MIN_DISTANCE_CM = 3.0
 
+# Ekstra cm robotten kører FORBI boldens position.
+# Kompenserer for afstand fra markør til opsamler-åbning.
+# Mål afstanden fra den grønne markør til opsamlerens indgang.
+COLLECTOR_OFFSET_CM = 5.0
+
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 20.0
+MAX_STEP_CM = 15.0
+
+# Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
+# Når robotten er tættere end dette: stop, ret vinkel præcist, kør resten i ét ryk.
+APPROACH_DISTANCE_CM = 5.0
