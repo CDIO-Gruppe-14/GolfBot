@@ -59,6 +59,7 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
 COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
+COLLECTION_SPEED     = 15        # Langsom koerselshastighed under opsamling (0-100)
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
