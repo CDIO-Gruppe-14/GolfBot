@@ -56,9 +56,9 @@ MOTOR_LEFT_PORT  = "B"   # Port for venstre motor
 MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 
 # Opsamlingsmotor
-# Brugt i: src/robot/test_zcollector.py
+# Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 60         # Hastighed i procent (0-100)
+COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
@@ -143,12 +143,24 @@ MIN_DISTANCE_CM = 3.0
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_OFFSET_CM = 5.0
+COLLECTOR_OFFSET_CM = 1
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
 MAX_STEP_CM = 15.0
 
 # Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
-# Når robotten er tættere end dette: stop, ret vinkel præcist, kør resten i ét ryk.
-APPROACH_DISTANCE_CM = 5.0
+# Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
+APPROACH_DISTANCE_CM = 15
+
+# ===========================================================================
+# 7. MÅL OG AFLEVERING (DELIVER)
+# ===========================================================================
+# Afstand til målet hvor robotten skal stoppe og spytte bolden ud (cm)
+DELIVER_DISTANCE_CM = 10
+
+# Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
+# Målt i cm.
+GOAL_A_CM = (90.0, 0.0)    # Standard placering top midt
+GOAL_B_CM = (90.0, 120.0)  # Standard placering bund midt
+

@@ -16,15 +16,26 @@ import sys
 import os
 
 # Goer src-roden tilgaengelig for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))) # src/robot/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # src/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) # CDIO/
 
 from motor_controller import MotorController
 from communication.connection import RobotServer
 from communication.protocol import decode_command, encode_command, DONE, ERROR
+try:
+    try:
+        from collector import BallCollector
+    except ImportError:
+        from robot.collector import BallCollector
+except ImportError as e:
+    print("ADVARSEL: Kunne ikke importere BallCollector (hvis du koerer på PC er dette normalt):")
+    import traceback
+    traceback.print_exc()
+    BallCollector = None
 
 
-def command_loop(server, mc):
+def command_loop(server, mc, collector=None):
     """
     Hoved-loop: modtager kommandoer fra PC'en og udfoerer dem.
 
@@ -59,8 +70,31 @@ def command_loop(server, mc):
             server.send_reply(DONE)
             break
 
+        elif cmd == "COLLECT_START":
+            print("-> Modtog COLLECT_START. Er collector initialiseret?", collector is not None)
+            if collector:
+                collector.start_collection()
+            else:
+                print("FEJL: Opsamleren (BallCollector) kunne ikke startes, da objektet er None!")
+            server.send_reply(DONE)
+
+        elif cmd == "COLLECT_STOP":
+            print("-> Modtog COLLECT_STOP.")
+            if collector:
+                collector.stop()
+            server.send_reply(DONE)
+
+        elif cmd == "COLLECT_EJECT":
+            print("-> Modtog COLLECT_EJECT.")
+            if collector:
+                collector.eject_ball()
+            server.send_reply(DONE)
+
         elif cmd == "COLLECT":
-            # TODO: implementer collector.collect() naar collector.py er faerdig
+            # Stubbed full collect sequence if needed later
+            print("-> Modtog COLLECT.")
+            if collector:
+                collector.start_collection()
             server.send_reply(DONE)
 
         else:
@@ -71,14 +105,17 @@ def command_loop(server, mc):
 def main():
     server = RobotServer()
     mc     = MotorController()
+    collector = BallCollector() if BallCollector else None
 
     print("GolfBot EV3 -- venter paa forbindelse...")
     server.wait_for_connection()
 
     try:
-        command_loop(server, mc)
+        command_loop(server, mc, collector)
     finally:
         mc.stop()
+        if collector:
+            collector.stop()
         server.close()
         print("Robot afsluttet.")
 
