@@ -70,20 +70,35 @@ class ColorDetector:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         return mask
 
-    def _contours_to_results(self, contours, mask) -> list[DetectionResult]:
-        """Konvertér konturer til en liste af DetectionResult (filtreret på min_area)."""
+    def _contours_to_results(self, contours, mask,
+                             profile: dict | None = None,
+                             offset: tuple = (0, 0)) -> list[DetectionResult]:
+        """Konvertér konturer til en liste af DetectionResult (filtreret på areal).
+
+        Args:
+            profile: Farveprofil-dict med valgfri 'min_area'/'max_area' felter.
+            offset:  (ox, oy) der lægges til koordinater (brugt ved ROI-crop).
+        """
+        min_a = profile.get("min_area", self.min_area) if profile else self.min_area
+        max_a = profile.get("max_area") if profile else None
+        ox, oy = offset
+
         results = []
         for cnt in contours:
             area = cv2.contourArea(cnt)
-            if area < self.min_area:
+            if area < min_a:
+                continue
+            if max_a is not None and area > max_a:
                 continue
             M = cv2.moments(cnt)
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
+            if M["m00"] == 0:
+                continue
+            cx = int(M["m10"] / M["m00"]) + ox
+            cy = int(M["m01"] / M["m00"]) + oy
             x, y, w, h_box = cv2.boundingRect(cnt)
             results.append(DetectionResult(
                 found=True, center=(cx, cy), area=area,
-                contour=cnt, mask=mask, bbox=(x, y, w, h_box),
+                contour=cnt, mask=mask, bbox=(x + ox, y + oy, w, h_box),
             ))
         return results
 
@@ -94,23 +109,92 @@ class ColorDetector:
             return DetectionResult(found=False)
         return max(results, key=lambda r: r.area)
 
-    def detect_all(self, frame, profile_name: str, _hsv=None) -> list[DetectionResult]:
-        """Returnér alle detektioner for én farve (sorteret størst først)."""
+    def detect_all(self, frame, profile_name: str, _hsv=None,
+                   roi: tuple | None = None) -> list[DetectionResult]:
+        """Returnér alle detektioner for én farve (sorteret størst først).
+
+        Args:
+            roi: (x, y, w, h) — begræns detektion til dette rektangel.
+                 Returnerede koordinater er i fuld-frame-space.
+        """
         if profile_name not in self.profiles:
             raise ValueError(f"Profil '{profile_name}' ikke indlæst — kald load_profile() først.")
 
+        profile = self.profiles[profile_name]
+        offset = (0, 0)
+
+        if roi is not None:
+            rx, ry, rw, rh = roi
+            frame = frame[ry:ry+rh, rx:rx+rw]
+            _hsv = None  # force recompute on cropped frame
+            offset = (rx, ry)
+
         hsv = _hsv if _hsv is not None else cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = self._build_mask(hsv, self.profiles[profile_name])
+        mask = self._build_mask(hsv, profile)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                         cv2.CHAIN_APPROX_SIMPLE)
-        results = self._contours_to_results(contours, mask)
+        results = self._contours_to_results(contours, mask, profile=profile, offset=offset)
         results.sort(key=lambda r: r.area, reverse=True)
         return results
 
-    def detect_all_colors(self, frame) -> dict[str, list[DetectionResult]]:
-        """Kør detektion for alle indlæste profiler. Returnér {farvenavn: [resultater]}."""
+    def detect_field_roi(self, frame, margin: int = 100) -> tuple | None:
+        """Detektér den røde baneramme og returnér indre bounding box som ROI.
+
+        Krymper ROI indad med 'margin' pixels for at ekskludere selve rammen.
+
+        Returns:
+            (x, y, w, h) for banens indre areal, eller None.
+        """
+        if "roed" not in self.profiles:
+            if not self.load_profile("roed"):
+                return None
+
+        results = self.detect_all(frame, "roed")
+        if not results:
+            return None
+
+        x, y, w, h = results[0].bbox
+        # Krymp indad for at ekskludere den røde ramme
+        h_frame, w_frame = frame.shape[:2]
+        x2 = min(x + margin, w_frame)
+        y2 = min(y + margin, h_frame)
+        w2 = max(w - 2 * margin, 0)
+        h2 = max(h - 2 * margin, 0)
+        return (x2, y2, w2, h2)
+
+    def detect_all_colors(self, frame,
+                          roi: tuple | None = None) -> dict[str, list[DetectionResult]]:
+        """Kør detektion for alle indlæste profiler. Returnér {farvenavn: [resultater]}.
+
+        Args:
+            roi: (x, y, w, h) — begræns detektion til dette rektangel.
+        """
+        # Når ROI bruges, kan vi ikke dele HSV-frame på tværs af profiler
+        if roi is not None:
+            return {name: self.detect_all(frame, name, roi=roi)
+                    for name in self.profiles}
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return {name: self.detect_all(frame, name, _hsv=hsv) for name in self.profiles}
+
+    def detect_balls(self, frame) -> list[dict]:
+        """Detektér bolde inden for bane-ROI.
+
+        Finder automatisk ROI via den røde baneramme, og detekterer
+        derefter bolde (alle profiler undtagen 'roed') inden for ROI.
+
+        Returns:
+            Liste af dicts: [{"color": str, "center": (x,y), "area": float}, ...]
+            Koordinater er i fuld-frame pixel-space.
+        """
+        roi = self.detect_field_roi(frame)
+
+        ball_profiles = {k: v for k, v in self.profiles.items() if k != "roed"}
+        balls = []
+        for name in ball_profiles:
+            results = self.detect_all(frame, name, roi=roi)
+            for r in results:
+                balls.append({"color": name, "center": r.center, "area": r.area})
+        return balls
 
 
 def draw_detection(frame, result: DetectionResult,
@@ -164,14 +248,38 @@ if __name__ == "__main__":
             if frame is None:
                 continue
 
-            all_results = detector.detect_all_colors(frame)
             annotated = frame.copy()
 
-            for i, (name, results) in enumerate(all_results.items()):
+            # Tegn ROI (rød baneramme) hvis fundet
+            roi = detector.detect_field_roi(frame)
+            if roi is not None:
+                rx, ry, rw, rh = roi
+                cv2.rectangle(annotated, (rx, ry), (rx + rw, ry + rh), (0, 255, 255), 2)
+                cv2.putText(annotated, "ROI", (rx + 5, ry + 25),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+
+            # Detektér bolde inden for ROI
+            ball_profiles = {k: v for k, v in detector.profiles.items() if k != "roed"}
+            for i, name in enumerate(ball_profiles):
                 draw_color = DRAW_COLORS[i % len(DRAW_COLORS)]
+                results = detector.detect_all(frame, name, roi=roi)
                 for r in results:
                     annotated = draw_detection(annotated, r, label=name, color=draw_color)
                     print(f"  {name}: center={r.center}  areal={r.area:.0f}px²")
+
+                # Debug: vis maske for hvid
+                if name == "hvid":
+                    crop = frame
+                    if roi is not None:
+                        rx, ry, rw, rh = roi
+                        crop = frame[ry:ry+rh, rx:rx+rw]
+                    hsv_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+                    mask = detector._build_mask(hsv_crop, detector.profiles["hvid"])
+                    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
+                                                    cv2.CHAIN_APPROX_SIMPLE)
+                    print(f"  [DEBUG hvid] konturer: {len(contours)}, "
+                          f"arealer: {[int(cv2.contourArea(c)) for c in contours[:10]]}")
+                    cv2.imshow("Hvid Maske", mask)
 
             cv2.imshow("ColorDetector", annotated)
             if cv2.waitKey(1) & 0xFF == ord('q'):
