@@ -11,7 +11,7 @@ class RobotPosition:
 
 
 class RobotTracker:
-    def __init__(self, color_detector, marker_color="green", marker_color_back=None):
+    def __init__(self, color_detector, marker_color="green", marker_color_back="blue"):
         self.detector = color_detector
         self.marker_color = marker_color
         self.marker_color_back = marker_color_back

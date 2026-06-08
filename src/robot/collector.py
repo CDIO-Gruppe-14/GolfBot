@@ -3,32 +3,34 @@ from ev3dev2.motor import MediumMotor, SpeedPercent
 from config import COLLECTOR_MOTOR_PORT, COLLECTOR_SPEED
 
 class BallCollector:
-    """Håndterer opsamlingsbåndet på GolfBot (indføring og udspyvning)."""
+    """Haandterer opsamlingsbaandet paa GolfBot (indfoering og udspyvning)."""
     
     def __init__(self):
         try:
             self.motor = MediumMotor(COLLECTOR_MOTOR_PORT)
-            print("BallCollector initialiseret på port:", COLLECTOR_MOTOR_PORT)
+            print("BallCollector initialiseret paa port:", COLLECTOR_MOTOR_PORT)
         except Exception as e:
-            print(f"FEJL: Kunne ikke finde opsamlingsmotor på {COLLECTOR_MOTOR_PORT}: {e}")
+            # Undgaa non-ASCII i print-statements da EV3 terminal kan vaere ASCII-only
+            err_msg = "FEJL: Kunne ikke finde opsamlingsmotor paa {}: {}".format(COLLECTOR_MOTOR_PORT, str(e))
+            print(err_msg.encode('ascii', 'replace').decode('ascii'))
             self.motor = None
 
     def start_collection(self):
-        """Starter båndet, så det suger bolden IND i robotten."""
+        """Starter baandet, saa det suger bolden IND i robotten."""
         if self.motor:
-            # Hvis jeres test viste at minus kører fremad:
+            # Hvis jeres test viste at minus koerer fremad:
             self.motor.on(SpeedPercent(-COLLECTOR_SPEED))
-            print("Opsamlingsbånd kører: SLYNGER IND")
+            print("Opsamlingsbaand koerer: SLYNGER IND")
 
     def eject_ball(self):
-        """Kører båndet baglæns, så bolden spyttes UD."""
+        """Koerer baandet baglaens, saa bolden spyttes UD."""
         if self.motor:
-            # Modsat fortegn for at køre baglæns og spytte ud
+            # Modsat fortegn for at koere baglaens og spytte ud
             self.motor.on(SpeedPercent(COLLECTOR_SPEED))
-            print("Opsamlingsbånd kører baglæns: SPYTTER UD")
+            print("Opsamlingsbaand koerer baglaens: SPYTTER UD")
 
     def stop(self):
-        """Stopper transportbåndet helt."""
+        """Stopper transportbaandet helt."""
         if self.motor:
             self.motor.off()
-            print("Opsamlingsbånd stoppet.")
+            print("Opsamlingsbaand stoppet.")
