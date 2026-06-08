@@ -1,0 +1,39 @@
+import math
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import MIN_TURN_DEGREES, MIN_DISTANCE_CM, MAX_STEP_CM
+
+
+def compute_angle_to_ball(robot_x, robot_y, ball_x, ball_y):
+    """Beregn vinkel fra robot til bold i grader (0 = oest, 90 = nord)."""
+    dx = ball_x - robot_x
+    dy = ball_y - robot_y
+    return math.degrees(math.atan2(dy, dx))
+
+
+def compute_distance(robot_x, robot_y, ball_x, ball_y):
+    """Beregn afstand fra robot til bold i cm."""
+    dx = ball_x - robot_x
+    dy = ball_y - robot_y
+    return math.hypot(dx, dy)
+
+
+def compute_turn_only(robot_x, robot_y, robot_heading, ball_x, ball_y):
+    """
+    Beregn KUN drejning. Returnerer (turn_angle, distance).
+    Kalder IKKE forward -- det goer serveren separat efter re-evaluering.
+    """
+    target_angle = compute_angle_to_ball(robot_x, robot_y, ball_x, ball_y)
+    distance = compute_distance(robot_x, robot_y, ball_x, ball_y)
+
+    # Beregn mindste drejning (-180 til +180)
+    turn_angle = (target_angle - robot_heading + 180) % 360 - 180
+
+    return round(turn_angle, 1), round(distance, 1)
+
+
+def compute_forward_step(distance):
+    """Begraens fremadkoersel til MAX_STEP_CM for at undgaa overshoot."""
+    return round(min(distance, MAX_STEP_CM), 1)

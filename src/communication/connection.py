@@ -1,22 +1,23 @@
 import socket
 import time
+import sys
+import os
 
-# Standard indstillinger
-PORT = 12345
-BUFFER_SIZE = 1024
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import PORT, BUFFER_SIZE, MAX_RETRIES, CONNECT_TIMEOUT_SEC, RETRY_DELAY_SEC
 
 class RobotServer:
     """
-    Kører på EV3. Lytter efter forbindelser og modtager kommandoer fra PC'en.
+    Koerer paa EV3. Lytter efter forbindelser og modtager kommandoer fra PC'en.
     """
     def __init__(self):
-        # Sætter vores stik ("socket") op
+        # Saetter vores stik ("socket") op
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
-        # Gør at vi kan genstarte programmet hurtigt uden at porten er blokeret
+        # Goer at vi kan genstarte programmet hurtigt uden at porten er blokeret
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
-        # Lyt til alle der vil snakke på PORT 12345 (USB, Bluetooth, WiFi)
+        # Lyt til alle der vil snakke paa PORT 12345 (USB, Bluetooth, WiFi)
         self.server_socket.bind(('0.0.0.0', PORT)) 
         self.server_socket.listen(1)
         
@@ -24,10 +25,10 @@ class RobotServer:
         self.client_addr = None
         
     def wait_for_connection(self):
-        print("EV3 venter på at PC'en forbinder på port", PORT)
+        print("EV3 venter paa at PC'en forbinder paa port {}".format(PORT))
         # Dette "stopper" programmet indtil PC'en kontakter os
         self.client_conn, self.client_addr = self.server_socket.accept()
-        print(f"BINGO! Forbundet til PC'en på adresse {self.client_addr}")
+        print("BINGO! Forbundet til PC'en paa adresse {}".format(self.client_addr))
 
     def receive_message(self):
         """Venter her indtil der kommer en besked fra PC'en."""
@@ -42,12 +43,12 @@ class RobotServer:
                 return None
             return data.decode('utf-8')
         except Exception as e:
-            print(f"Ups! Mistede forbindelsen til PC: {e}")
+            print("Ups! Mistede forbindelsen til PC: {}".format(e))
             self.close_client()
             return None
             
     def send_reply(self, text):
-        """Sender vores svar tilbage til PC'en (f.eks. 'DONE\\n')"""
+        """Sender vores svar tilbage til PC'en"""
         if not self.client_conn:
             print("Kan ikke svare: Ingen PC forbundet.")
             return False
@@ -56,12 +57,12 @@ class RobotServer:
             self.client_conn.sendall(text.encode('utf-8'))
             return True
         except Exception as e:
-            print(f"Fejl! Kunne ikke svare PC'en: {e}")
+            print("Fejl! Kunne ikke svare PC'en: {}".format(e))
             self.close_client()
             return False
 
     def close_client(self):
-        """Lukker kun forbindelsen til den nuværende PC (klar til en ny)"""
+        """Lukker kun forbindelsen til den nuvaerende PC (klar til en ny)"""
         if self.client_conn:
             try:
                 self.client_conn.close()
@@ -80,28 +81,28 @@ class RobotServer:
 
 class PCClient:
     """
-    Kører på PC'en. Ringer EV3'en op og sender kommandoer til den.
+    Koerer paa PC'en. Ringer EV3'en op og sender kommandoer til den.
     """
     def __init__(self, robot_ip):
         self.robot_ip = robot_ip
         self.client_socket = None
         
-    def connect_to_robot(self, max_retries=5):
-        """Forsøger at forbinde til robotten med genforsøg."""
+    def connect_to_robot(self, max_retries=MAX_RETRIES):
+        """Forsoeger at forbinde til robotten med genforsoeg."""
         for attempt in range(max_retries):
             try:
-                print(f"[{attempt+1}/{max_retries}] Ringer til EV3 på IP: {self.robot_ip}...")
+                print("[{}/{}] Ringer til EV3 paa IP: {}...".format(attempt+1, max_retries, self.robot_ip))
                 self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.client_socket.settimeout(5.0) # Giv op efter 5 sek, hvis den ikke svarer
+                self.client_socket.settimeout(CONNECT_TIMEOUT_SEC)
                 self.client_socket.connect((self.robot_ip, PORT))
-                self.client_socket.settimeout(None) # Slå timeout fra, når vi er forbundet
+                self.client_socket.settimeout(None) # Slaa timeout fra, naar vi er forbundet
                 print("Forbundet!")
                 return True
             except Exception as e:
-                print(f"Kunne ikke forbinde: {e}. Prøver om 2 sekunder...")
-                time.sleep(2)
+                print("Kunne ikke forbinde: {}. Proever om {} sekunder...".format(e, RETRY_DELAY_SEC))
+                time.sleep(RETRY_DELAY_SEC)
         
-        print("Fejl: Kunne ikke få kontakt til EV3'en!")
+        print("Fejl: Kunne ikke faa kontakt til EV3'en!")
         return False
         
     def send_command(self, text):
@@ -114,12 +115,12 @@ class PCClient:
             self.client_socket.sendall(text.encode('utf-8'))
             return True
         except Exception as e:
-            print(f"Forbindelsen røg under afsendelse: {e}")
+            print("Forbindelsen roeg under afsendelse: {}".format(e))
             self.close()
             return False
         
     def wait_for_reply(self):
-        """Venter på svar fra robotten (blokerer)"""
+        """Venter paa svar fra robotten (blokerer)"""
         if not self.client_socket:
             return None
             
@@ -131,12 +132,12 @@ class PCClient:
                 return None
             return reply.decode('utf-8')
         except Exception as e:
-            print(f"Mistede forbindelsen under venten på svar: {e}")
+            print("Mistede forbindelsen under venten paa svar: {}".format(e))
             self.close()
             return None
 
     def close(self):
-        """Lukker forbindelsen pænt ned."""
+        """Lukker forbindelsen paent ned."""
         if self.client_socket:
             try:
                 self.client_socket.close()

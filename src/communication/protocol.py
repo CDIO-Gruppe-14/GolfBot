@@ -1,48 +1,63 @@
 """
-Protokol-ordbogen.
-Disse funktioner bruges af både PC og EV3 til at oversætte 
-mellem programmets kode og den tekst, der sendes over WiFi.
+GolfBot Kommunikationsprotokol
+==============================
+Fælles kommandoformat delt mellem PC (server/) og EV3 (robot/).
 
-Det aftalte format er altid:
-"KOMMANDO VÆRDI\\n" eller bare "KOMMANDO\\n"
+Kommandoer PC → EV3:
+  FORWARD <cm>      — Kør ligeud et antal centimeter
+  TURN <grader>     — Drej (positiv = højre, negativ = venstre)
+  HEADING           — Anmod om EV3's aktuelle gyro-heading i grader
+  STOP              — Stop og afslut kommando-loop
+
+Svar EV3 → PC:
+  DONE              — Kommando udført
+  HEADING <grader>  — Svar på HEADING-forespørgsel
+  ERROR             — Ukendt eller fejlet kommando
 """
 
-def create_command(command, value=None):
+# --- Kommando-konstanter ---
+FORWARD = "FORWARD"
+TURN    = "TURN"
+HEADING = "HEADING"
+STOP    = "STOP"
+
+# --- Svar-konstanter ---
+DONE  = "DONE"
+ERROR = "ERROR"
+
+
+def encode_command(cmd: str, value: float = None) -> str:
     """
-    PC'en bruger denne til at lave en besked, inden den sendes.
-    F.eks. create_command("FORWARD", 30) -> "FORWARD 30\\n"
-    F.eks. create_command("STOP")        -> "STOP\\n"
+    Formatter en kommando til afsendelse over socket.
+
+    Eksempler:
+        encode_command("FORWARD", 42.5)  →  "FORWARD 42.5\\n"
+        encode_command("STOP")           →  "STOP\\n"
+        encode_command("HEADING")        →  "HEADING\\n"
     """
     if value is not None:
-        return f"{command} {value}\n"
-    return f"{command}\n"
+        return "{} {}\n".format(cmd, value)
+    return "{}\n".format(cmd)
 
-def parse_command(message):
-    """
-    EV3'en bruger denne til at forstå, hvad den lige har modtaget.
-    F.eks. modtager "TURN_TO -45\\n" 
-           -> returværdi: ("TURN_TO", -45.0)
-    """
-    # 1. Fjern eventuelle linjeskift indsat for netværkets skyld
-    message = message.strip()
-    
-    if not message:
-        return None, None
 
-    # 2. Split teksten op ved hvert mellemrum
-    parts = message.split(' ')
-    
-    # 3. Den første del er altid vores kommando (f.eks. "FORWARD")
-    command = parts[0]
-    
-    # 4. Hvis der står et tal efterfølgende (f.eks. "20"), læser vi det.
-    if len(parts) > 1:
-        try:
-            value = float(parts[1])
-        except ValueError:
-            print(f"Fejl! Kunne ikke forstå {parts[1]} som et tal.")
-            value = None
-    else:
+def decode_command(raw):
+    """
+    Parser en modtaget streng fra socket.
+
+    Eksempler:
+        decode_command("FORWARD 42.5\\n")  →  ("FORWARD", 42.5)
+        decode_command("STOP\\n")          →  ("STOP", None)
+        decode_command("HEADING 182.3\\n") →  ("HEADING", 182.3)
+
+    Returnerer:
+        (kommando, værdi) — værdi er None hvis kommandoen ikke har en talværdi
+    """
+    parts = raw.strip().split()
+    if not parts:
+        return (ERROR, None)
+    cmd = parts[0].upper()
+    try:
+        value = float(parts[1]) if len(parts) > 1 else None
+    except (ValueError, IndexError):
         value = None
-        
-    return command, value
+    return cmd, value
