@@ -1,21 +1,20 @@
-# 🏌️ GolfBot — Kalibrering & Kørsel
+# GolfBot — Kalibrering & Kørsel
 
 > Step-by-step guide til at opsætte, kalibrere og køre GolfBot-systemet fra bunden.
-> Alle kommandoer køres fra **projektets rodmappe** (`c:\GitHub\CDIO`) medmindre andet er angivet.
+> Alle kommandoer køres fra **projektets rodmappe** (`GolfBot/`) medmindre andet er angivet.
 
 ---
 
 ## Forudsætninger
 
-Inden du starter, sikrer du dig at:
+Inden du starter, sørg for at:
 
 - [ ] EV3-robotten er tændt og kørende med **ev3dev OS**
 - [ ] EV3-robotten er tilsluttet WiFi (samme netværk som PC'en)
 - [ ] USB-kameraet er tilsluttet PC'en og hænger over banen på stativet
 - [ ] Du har installeret Python-afhængigheder på PC'en:
 
-```powershell
-cd c:\GitHub\CDIO
+```bash
 pip install -r requirements.txt
 ```
 
@@ -27,7 +26,7 @@ pip install -r requirements.txt
 
 Tilslut EV3 til PC'en med USB-kablet. Brug SSH over USB-netværket (EV3's standard USB-IP er `10.42.0.3` — se på EV3-displayet):
 
-```powershell
+```bash
 ssh robot@10.42.0.3
 ```
 
@@ -45,17 +44,12 @@ Du leder efter en linje der ligner:
 ```
 inet 172.20.10.4/24
 ```
-Det er den IP du skal bruge. Notér den.
+Det er den IP du skal bruge. Noter den.
 
-### 1c. Opdatér IP i config.py
+### 1c. Opdater IP i config.py
 
-Åbn `config.py` og ret `ROBOT_IP`:
+Åbn `config.py` i projektets rod og ret `ROBOT_IP`:
 
-```powershell
-notepad c:\GitHub\CDIO\config.py
-```
-
-Find og ret denne linje:
 ```python
 ROBOT_IP = "172.20.10.4"   # <-- Ret til jeres aktuelle IP
 ```
@@ -68,7 +62,7 @@ ROBOT_IP = "172.20.10.4"   # <-- Ret til jeres aktuelle IP
 
 Erstat `172.20.10.4` med den faktiske IP du fandt i trin 1:
 
-```powershell
+```bash
 ssh robot@172.20.10.4
 ```
 
@@ -91,13 +85,13 @@ robot@ev3dev:~$
 
 ## Trin 3 — Overfør projektfiler til EV3 (første gang)
 
-Åbn en **ny** PowerShell-terminal på din PC (hold SSH-terminalen åben i en anden):
+Åbn en **ny** terminal på din PC (hold SSH-terminalen åben i en anden):
 
-```powershell
-# Overfør hele projektet
-scp -r c:\GitHub\CDIO\src\robot robot@172.20.10.4:/home/robot/CDIO/src/
-scp -r c:\GitHub\CDIO\src\communication robot@172.20.10.4:/home/robot/CDIO/src/
-scp c:\GitHub\CDIO\config.py robot@172.20.10.4:/home/robot/CDIO/
+```bash
+# Overfør robot-kode, communication og config
+scp -r src/robot robot@172.20.10.4:/home/robot/CDIO/src/
+scp -r src/communication robot@172.20.10.4:/home/robot/CDIO/src/
+scp config.py robot@172.20.10.4:/home/robot/CDIO/
 ```
 
 Adgangskode: `maker`
@@ -115,19 +109,15 @@ pip3 install -r /home/robot/CDIO/ev3_requirements.txt
 ```
 
 > **Efterfølgende opdateringer:** Hvis du kun har ændret i `config.py`, er det nok at overføre den:
-> ```powershell
-> scp c:\GitHub\CDIO\config.py robot@172.20.10.4:/home/robot/CDIO/
+> ```bash
+> scp config.py robot@172.20.10.4:/home/robot/CDIO/
 > ```
 
 ---
 
-## Trin 4 — Justér fysiske mål i `config.py`
+## Trin 4 — Juster fysiske mål i `config.py`
 
-Inden første kørsel, åbn `config.py` på PC'en og verificer at disse værdier matcher jeres robot:
-
-```powershell
-notepad c:\GitHub\CDIO\config.py
-```
+Inden første kørsel, åbn `config.py` og verificer at disse værdier matcher jeres robot:
 
 | Parameter | Standardværdi | Beskrivelse |
 |---|---|---|
@@ -142,8 +132,8 @@ notepad c:\GitHub\CDIO\config.py
 
 Husk at genoverføre `config.py` til EV3 efter ændringer:
 
-```powershell
-scp c:\GitHub\CDIO\config.py robot@172.20.10.4:/home/robot/CDIO/
+```bash
+scp config.py robot@172.20.10.4:/home/robot/CDIO/
 ```
 
 ---
@@ -160,30 +150,24 @@ python3 src/robot/test_collector.py
 Forventet output:
 ```
 Initialiserer opsamlingsmotor paa port: A
-Koerer forlaens i 20 sekunder med 60% hastighed...
+Koerer forlaens i 10 sekunder med 60% hastighed...
 Stopper motoren...
-Koerer baglaens i 20 sekunder med 60% hastighed...
+Koerer baglaens i 10 sekunder med 60% hastighed...
 Stopper motoren...
 Test afsluttet!
 ```
 
-Hvis motoren ikke reagerer, tjek at den er tilsluttet den korrekte port (`A` som standard).
+> **Bemærk:** Motoren kører faktisk i 20 sekunder per retning (print-beskeden siger 10 men sleep er 20). Tjek at den er tilsluttet den korrekte port (`A` som standard).
 
 ---
 
-## Trin 6 — Kalibrér farver (PC — én gang per farve)
+## Trin 6 — Kalibrer farver (PC — en gang per farve)
 
 Farvekalibrering køres på din **PC** og kræver at kameraet er tilsluttet og placeret over banen.
 
-Alle kommandoer køres fra `c:\GitHub\CDIO`:
+### 6a. Kalibrer robotmarkøren (grøn — frontmarkør)
 
-```powershell
-cd c:\GitHub\CDIO
-```
-
-### 6a. Kalibrér robotmarkøren (grøn)
-
-```powershell
+```bash
 python src/vision/color_calibrator.py green
 ```
 
@@ -198,42 +182,55 @@ To vinduer åbner: **"Kalibrering"** og **"Maske"**.
 4. Tryk **`s`** for at gemme → `color_profiles/green.json`.
 5. Tryk **`q`** for at lukke.
 
-### 6b. Kalibrér orange bold
+### 6b. Kalibrer bagmarkøren (blå — valgfrit men anbefalet)
 
-```powershell
+Hvis robotten har en blå markør på bagsiden (til direkte heading-måling fra kameraet):
+
+```bash
+python src/vision/color_calibrator.py blue
+```
+
+Klik på den blå markør. Juster sliders. Gem med **`s`**.
+
+> **Tip:** Dobbelt-markør giver langt bedre heading-præcision end enkelt-markør. Konfigurer `MARKER_COLOR_BACK = "blue"` i `config.py` (standard). Sæt til `None` for enkelt-markør mode.
+
+### 6c. Kalibrer orange bold
+
+```bash
 python src/vision/color_calibrator.py orange
 ```
 
-Klik på en orange bold i billedet. Justér sliders. Gem med **`s`**.
+Klik på en orange bold i billedet. Juster sliders. Gem med **`s`**.
 
-### 6c. Kalibrér hvid bold
+### 6d. Kalibrer hvid bold
 
-```powershell
+```bash
 python src/vision/color_calibrator.py white
 ```
 
-Hvide bolde er sværest — V-tolerance skal helst ikke gøre hele banen hvid. Justér forsigtigt. Gem med **`s`**.
+Hvide bolde er sværest — V-tolerance skal helst ikke gøre hele banen hvid. Juster forsigtigt. Gem med **`s`**.
 
-### Verificér at profilerne er gemt
+### Verificer at profilerne er gemt
 
-```powershell
-dir c:\GitHub\CDIO\color_profiles
+```bash
+ls color_profiles/
 ```
 
-Du skal se:
+Du skal se (minimum):
 ```
 green.json
+blue.json
 orange.json
 white.json
 ```
 
 ---
 
-## Trin 7 — Kalibrér banen (PC — felt-hjørner)
+## Trin 7 — Kalibrer banen (PC — felt-hjørner)
 
 Banekalibreringen fortæller systemet præcist hvor banens 4 hjørner er i kameraets billede.
 
-```powershell
+```bash
 python src/vision/field_calibrator.py
 ```
 
@@ -251,10 +248,10 @@ Klik de **4 hjørner i præcis denne rækkefølge** — klik nøjagtigt i baneka
 
 Terminalen bekræfter hvert klik:
 ```
-  ✓ 1: Øverst-venstre: (130, 39)
-  ✓ 2: Øverst-højre: (538, 39)
-  ✓ 3: Nederst-højre: (545, 454)
-  ✓ 4: Nederst-venstre: (115, 441)
+  1: Øverst-venstre: (130, 39)
+  2: Øverst-højre: (538, 39)
+  3: Nederst-højre: (545, 454)
+  4: Nederst-venstre: (115, 441)
 ```
 
 Et grønt polygon tegnes rundt om banen.
@@ -263,13 +260,7 @@ Et grønt polygon tegnes rundt om banen.
 - Tryk **`r`** for at nulstille og starte forfra
 - Tryk **`q`** for at afslutte uden at gemme
 
-Verificér at filen er gemt:
-
-```powershell
-type c:\GitHub\CDIO\calibration\field_corners.json
-```
-
-> **Bemærk:** Kalibrér igen hver gang kameraet flyttes eller justeres.
+> **Bemærk:** Kalibrer igen hver gang kameraet flyttes eller justeres.
 
 ---
 
@@ -296,10 +287,9 @@ EV3-robotten sidder nu og venter. **Lad terminalen være åben.**
 
 ## Trin 9 — Start PC-serveren (Terminal B)
 
-Åbn en **ny** PowerShell-terminal på PC'en (Terminal B). Kør fra projektets rodmappe:
+Åbn en **ny** terminal på PC'en (Terminal B). Kør fra projektets rodmappe:
 
-```powershell
-cd c:\GitHub\CDIO
+```bash
 python src/server/main.py
 ```
 
@@ -325,14 +315,17 @@ Klar -- venter paa kommandoer...
 
 Systemet kender ikke robotens retning ved opstart. Det kalibrerer automatisk:
 
+**Med dobbelt-markør (grøn + blå):** Heading aflæses direkte fra kameraet — ingen indledende kørsel nødvendig.
+
+**Med enkelt markør (kun grøn):**
 ```
 [1] Ukendt retning. Koerer fremad 10 cm for at kalibrere...
  -> Retning kalibreret til: -12.3 grader
 ```
 
-Robotten kører 10 cm fremad og systemet beregner retningen ud fra kameraet.
+Robotten kører 10 cm fremad og systemet beregner retningen ud fra bevægelsen.
 
-> **Sørg for:** Robotten har mindst **10 cm frit foran sig** ved opstart.
+> **Sørg for:** Robotten har mindst **10 cm frit foran sig** ved opstart (kun relevant ved enkelt-markør mode).
 
 ---
 
@@ -345,11 +338,13 @@ Efter kalibrering kører systemet selv. PC-terminalen viser løbende status:
 [5] Robot: (45.2, 60.1)  Bold: (120.8, 85.3)
 [5] Heading: -12.3  Turn: 24.7  Dist: 79.4 cm
 [5] TURN 24.7
-[6] FORWARD 20.0
+[6] FORWARD 15.0
 [6] Heading rettet til: 12.1
 ------------------------------------------------------------
 [7] >>> BOLD NAAET! <<<
 ```
+
+> **Bemærk:** Systemet kører aktuelt direkte mod nærmeste bold uden forhindringshåndtering. Boldopsamling (COLLECT) svarer DONE men aktiverer endnu ikke den fysiske opsamler.
 
 ---
 
@@ -378,14 +373,15 @@ exit
 
 ## Hurtig reference — alle kommandoer
 
-### PC (PowerShell fra `c:\GitHub\CDIO`)
+### PC (fra projektets rodmappe)
 
-```powershell
-# Installér afhængigheder (kun første gang)
+```bash
+# Installer afhængigheder (kun første gang)
 pip install -r requirements.txt
 
 # Farvekalibrering
 python src/vision/color_calibrator.py green
+python src/vision/color_calibrator.py blue
 python src/vision/color_calibrator.py orange
 python src/vision/color_calibrator.py white
 
@@ -396,7 +392,7 @@ python src/vision/field_calibrator.py
 python src/server/main.py
 
 # Overfør opdateret config til EV3
-scp c:\GitHub\CDIO\config.py robot@172.20.10.4:/home/robot/CDIO/
+scp config.py robot@172.20.10.4:/home/robot/CDIO/
 ```
 
 ### EV3 (via SSH: `ssh robot@172.20.10.4`, adgangskode: `maker`)
@@ -422,7 +418,7 @@ pkill -f "python3 src/robot/main.py" ; python3 src/robot/main.py
 
 ### Kan ikke SSH ind på EV3
 
-```powershell
+```bash
 # Prøv USB-IP'en i stedet
 ssh robot@10.42.0.3
 # Adgangskode: maker
@@ -432,10 +428,10 @@ Sørg for at EV3's USB-netværk er aktivt (vises på EV3-displayet under "Wirele
 
 ### "Kunne ikke forbinde til robotten" (PC-server fejler)
 
-1. Kontrollér at EV3-programmet kører (Terminal A skal vise "venter paa forbindelse")
-2. Kontrollér at IP'en i `config.py` er korrekt
+1. Kontroller at EV3-programmet kører (Terminal A skal vise "venter paa forbindelse")
+2. Kontroller at IP'en i `config.py` er korrekt
 3. Test at IP'en kan pinges:
-   ```powershell
+   ```bash
    ping 172.20.10.4
    ```
 4. Start altid EV3-programmet **før** PC-serveren
@@ -443,9 +439,9 @@ Sørg for at EV3's USB-netværk er aktivt (vises på EV3-displayet under "Wirele
 ### Farverne genkendes ikke / robotten ses ikke
 
 - Kør farvekalibrering igen under de aktuelle lysforhold
-- Kontrollér at profilerderne eksisterer:
-  ```powershell
-  dir c:\GitHub\CDIO\color_profiles
+- Kontroller at profilerne eksisterer:
+  ```bash
+  ls color_profiles/
   ```
 - Øg `COLOR_MIN_AREA` i `config.py` for at filtrere støj (standard: 40)
 
@@ -457,7 +453,7 @@ Sørg for at EV3's USB-netværk er aktivt (vises på EV3-displayet under "Wirele
 ### Robotten kører for langt/kort
 
 - Mål hjulets diameter: læg en lineal over hjulets midte og mål fra kant til kant
-- Opdatér `WHEEL_DIAMETER_CM` og overfør `config.py` til EV3 igen
+- Opdater `WHEEL_DIAMETER_CM` og overfør `config.py` til EV3 igen
 
 ### Banekalibreringen er unøjagtig
 
@@ -469,22 +465,62 @@ Sørg for at EV3's USB-netværk er aktivt (vises på EV3-displayet under "Wirele
 
 ## Konfigurationsreference (`config.py`)
 
+### Netværk / Kommunikation
+
 | Parameter | Standard | Beskrivelse |
 |---|---|---|
-| `ROBOT_IP` | `172.20.10.4` | EV3-robotens WiFi IP-adresse |
+| `ROBOT_IP` | `"172.20.10.4"` | EV3-robotens WiFi IP-adresse |
 | `PORT` | `12345` | TCP-port til kommunikation |
+| `BUFFER_SIZE` | `1024` | Bytes der læses ad gangen fra socket |
+| `MAX_RETRIES` | `5` | Antal genforsøg ved forbindelse |
+| `CONNECT_TIMEOUT_SEC` | `5.0` | Timeout per forbindelsesforsøg (sek) |
+| `RETRY_DELAY_SEC` | `2` | Ventetid mellem genforsøg (sek) |
+
+### Motor & Bevægelse
+
+| Parameter | Standard | Beskrivelse |
+|---|---|---|
 | `WHEEL_DIAMETER_CM` | `6.88` | Hjuldiameter i cm |
 | `AXLE_TRACK_CM` | `12.0` | Afstand mellem hjulcentre i cm |
-| `MOTOR_SPEED` | `30` | Kørehastighed i % (0–100) |
+| `MOTOR_SPEED` | `30` | Kørehastighed i % (0-100) |
 | `MOTOR_LEFT_PORT` | `"B"` | Venstre motor-port på EV3 |
 | `MOTOR_RIGHT_PORT` | `"D"` | Højre motor-port på EV3 |
 | `COLLECTOR_MOTOR_PORT` | `"A"` | Opsamlermotor-port på EV3 |
 | `COLLECTOR_SPEED` | `60` | Opsamler-hastighed i % |
+| `GYRO_PORT` | `"2"` | Gyro-sensor input-port (ikke i brug aktuelt) |
+
+### Kamera
+
+| Parameter | Standard | Beskrivelse |
+|---|---|---|
 | `CAMERA_INDEX` | `0` | Kamera-index (0 = første USB-kamera) |
+| `CAMERA_FRAME_WIDTH` | `640` | Bredde i pixels |
+| `CAMERA_FRAME_HEIGHT` | `480` | Højde i pixels |
+
+### Vision / Farvedetektion
+
+| Parameter | Standard | Beskrivelse |
+|---|---|---|
+| `COLOR_MIN_AREA` | `40` | Minimalt pixel-areal for farvegenkendelse |
+| `PROFILES_DIR` | `"color_profiles"` | Sti til HSV-profil-mappen |
 | `BALL_COLORS` | `["orange", "white"]` | Bold-farver der søges efter (prioriteret) |
-| `MARKER_COLOR` | `"green"` | Robotmarkørens farve |
+| `MARKER_COLOR` | `"green"` | Robotmarkørens farve (front) |
+| `MARKER_COLOR_BACK` | `"blue"` | Bagmarkør-farve (`None` = enkelt-markør mode) |
+| `MORPH_KERNEL_SIZE` | `5` | Morfologi kernel-størrelse til støjreduktion |
+
+### Bane (FieldMap)
+
+| Parameter | Standard | Beskrivelse |
+|---|---|---|
 | `FIELD_SIZE_CM` | `(180, 120)` | Banens fysiske størrelse i cm |
+| `FIELD_CORNERS_PX` | `[(50,30), ...]` | Fallback pixel-hjørner (bruges kun hvis `field_corners.json` mangler) |
+
+### Navigation / Planlægning
+
+| Parameter | Standard | Beskrivelse |
+|---|---|---|
 | `MIN_TURN_DEGREES` | `2.0` | Mindste drejningsvinkel (dead-zone) |
 | `MIN_DISTANCE_CM` | `3.0` | Afstand til bold der udløser indsamling |
-| `MAX_STEP_CM` | `20.0` | Maksimalt fremad-skridt pr. iteration |
-| `COLOR_MIN_AREA` | `40` | Minimalt pixel-areal for farvegenkendelse |
+| `COLLECTOR_OFFSET_CM` | `5.0` | Ekstra cm forbi bold (kompenserer markør→opsamler afstand) |
+| `MAX_STEP_CM` | `15.0` | Maksimalt fremad-skridt pr. iteration |
+| `APPROACH_DISTANCE_CM` | `5.0` | Afstand hvor præcisions-tilnærmelse aktiveres |

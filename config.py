@@ -56,7 +56,7 @@ MOTOR_LEFT_PORT  = "B"   # Port for venstre motor
 MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 
 # Opsamlingsmotor
-# Brugt i: src/robot/test_zcollector.py
+# Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
 COLLECTOR_SPEED      = 60         # Hastighed i procent (0-100)
 
