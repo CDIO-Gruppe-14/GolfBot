@@ -35,5 +35,16 @@ def compute_turn_only(robot_x, robot_y, robot_heading, ball_x, ball_y):
 
 
 def compute_forward_step(distance):
-    """Begraens fremadkoersel til MAX_STEP_CM for at undgaa overshoot."""
-    return round(min(distance, MAX_STEP_CM), 1)
+    """
+    Begraens fremadkoersel til MAX_STEP_CM for at undgaa overshoot.
+    Sikr desuden at vi ikke kører helt frem til bolden i et normalt step,
+    så vi tvinger præcisions-tilnærmelsen i main.py til at tage over.
+    """
+    from config import APPROACH_DISTANCE_CM
+    
+    if distance <= APPROACH_DISTANCE_CM:
+        return round(distance, 1)
+        
+    # Kør kun indtil vi er lige i kanten af præcisions-zonen
+    safe_dist = distance - (APPROACH_DISTANCE_CM - 1.0)
+    return round(min(safe_dist, MAX_STEP_CM), 1)
