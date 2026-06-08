@@ -39,7 +39,7 @@ def main():
     # 3. Kørslen blokerer koden, så når vi når hertil, er de 50 cm kørt færdig.
     # Vi lader båndet køre i 1 sekund ekstra for at sikre, bolden er helt inde.
     print("[3/3] Kørsel færdig. Venter 1 sekund på slutfaser...")
-    time.sleep(1)
+    time.sleep(5)
 
     # 4. Ryd op og stop alt
     print("Stopper alle motorer. Test fuldført!")
