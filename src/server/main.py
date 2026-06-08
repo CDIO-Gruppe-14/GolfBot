@@ -1,7 +1,7 @@
 """
 GolfBot -- Server Orchestrator
 =================================
-Ren main der foelger whiteboard-flowet:
+Ren main der følger flows i faser:
 
   1. Detekter      (se elementer, gem positioner)
   2. Lav rute      (prioritetskoee, forberedt til A*)
