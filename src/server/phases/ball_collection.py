@@ -1,8 +1,8 @@
 """
 GolfBot -- Fase 4: Opsamling af Bold
 =======================================
-Starter transportbaand, koerer roligt frem over bold,
-og markerer bolden som opsamlet i prioritetskoeen.
+Koerer roligt frem over bold og markerer som opsamlet.
+Transportbaandet koerer allerede fra opstart (startet i main.py).
 """
 
 import time
@@ -19,9 +19,9 @@ def collect_ball(ctx, ball, queue):
     """
     Fase 4: Opsam bolden.
 
-    1. Start motor til transportbaand (COLLECT_START)
-    2. Koer roligt frem over bolden
-    3. Marker som opsamlet i prioritetskoeen
+    Transportbaandet koerer allerede (startet i main.py ved opstart).
+    1. Koer roligt frem over bolden
+    2. Marker som opsamlet i prioritetskoeen
 
     Args:
         ctx: GameContext
@@ -29,13 +29,8 @@ def collect_ball(ctx, ball, queue):
         queue: BallQueue -- bolden markeres som opsamlet her
     """
     ctx.iteration += 1
-    print("\n[{}] [Opsamling] Starter opsamling af {} bold paa ({:.1f}, {:.1f})".format(
+    print("\n[{}] [Opsamling] Opsamler {} bold paa ({:.1f}, {:.1f})".format(
         ctx.iteration, ball[2], ball[0], ball[1]))
-
-    # Start transportbaand (opsamling)
-    print("[{}] [Opsamling] Starter transportbaand...".format(ctx.iteration))
-    send_and_verify(ctx.client, "COLLECT_START")
-    time.sleep(0.3)
 
     # Koer roligt frem over bolden
     # COLLECTION_SPEED bruges til at styre motorhastighed (langsom koersel)
@@ -48,3 +43,4 @@ def collect_ball(ctx, ball, queue):
     queue.mark_collected(ball)
     print("[{}] [Opsamling] Bold opsamlet! {} bolde tilbage i koeen.".format(
         ctx.iteration, queue.remaining()))
+

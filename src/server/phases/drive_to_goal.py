@@ -86,10 +86,10 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
                   ctx.iteration, label, rx, ry, target_x, target_y,
                   distance, turn_angle))
 
-        # Maal naaet?
+        # Maal naaet? Stop uden at dreje -- robotten er allerede rettet
+        # ind korrekt fra waypoint-approachen. Vinkelberegning er upaalidelig
+        # paa saa kort afstand (kamera-stoej dominerer).
         if distance < stop_distance:
-            if abs(turn_angle) > MIN_TURN_DEGREES:
-                execute_turn(ctx, turn_angle)
             print("[{}] >>> {} NAAET! <<<".format(ctx.iteration, label))
             return
 

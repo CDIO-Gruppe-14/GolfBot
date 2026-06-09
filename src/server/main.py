@@ -88,6 +88,11 @@ def main():
     print("GolfBot startet -- foelger whiteboard-flow")
     print("=" * 60)
 
+    # Start opsamlingsmotor (koerer konstant under hele koerslen)
+    print("Starter opsamlingsmotor...")
+    from src.server.helpers.command_utils import send_and_verify
+    send_and_verify(ctx.client, "COLLECT_START")
+
     try:
         while True:
             # -----------------------------------------------------------
