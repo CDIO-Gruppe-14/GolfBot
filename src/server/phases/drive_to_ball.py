@@ -32,6 +32,11 @@ from config import (MIN_TURN_DEGREES, MIN_DISTANCE_CM,
 # Variabel til at styre praecis afstand (naevnt paa whiteboard).
 STOP_DISTANCE_CM = MIN_DISTANCE_CM
 
+# Mindste drejningsvinkel i praecisions-zonen (grader).
+# Hoejere end MIN_TURN_DEGREES fordi kamera-stoej giver store
+# vinkelfejl paa kort afstand (2 cm stoej ved 10 cm = ~11 grader fejl).
+PRECISION_MIN_TURN_DEGREES = 8.0
+
 
 def drive_to_ball(ctx, ball):
     """
@@ -123,8 +128,10 @@ def drive_to_ball(ctx, ball):
 def _precision_approach(ctx, turn_angle, distance):
     """Praecisions-tilnaermelse naar robotten er taet paa bolden.
     Returnerer True hvis bolden er naaet, False for at tage nyt billede."""
-    # Fase A: Ret vinkel praecist mod bolden
-    if abs(turn_angle) > MIN_TURN_DEGREES:
+    # Fase A: Ret vinkel -- men KUN hvis den er markant forkert.
+    # Paa kort afstand giver kamera-stoej store vinkelfejl,
+    # saa vi bruger en hoejere threshold end normal navigation.
+    if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:
             return False
