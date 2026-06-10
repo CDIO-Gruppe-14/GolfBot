@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from config import COLOR_MIN_AREA, MORPH_KERNEL_SIZE
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask
+from src.entities.ball import Ball
 
 
 @dataclass
@@ -176,14 +177,14 @@ class ColorDetector:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return {name: self.detect_all(frame, name, _hsv=hsv) for name in self.profiles}
 
-    def detect_balls(self, frame) -> list[dict]:
+    def detect_balls(self, frame) -> list[Ball]:
         """Detektér bolde inden for bane-ROI.
 
         Finder automatisk ROI via den røde baneramme, og detekterer
         derefter bolde (alle profiler undtagen 'roed') inden for ROI.
 
         Returns:
-            Liste af dicts: [{"color": str, "center": (x,y), "area": float}, ...]
+            Liste af Ball objekter.
             Koordinater er i fuld-frame pixel-space.
         """
         roi = self.detect_field_roi(frame)
@@ -193,7 +194,7 @@ class ColorDetector:
         for name in ball_profiles:
             results = self.detect_all(frame, name, roi=roi)
             for r in results:
-                balls.append({"color": name, "center": r.center, "area": r.area})
+                balls.append(Ball(name, r.center[0], r.center[1], name))
         return balls
 
 

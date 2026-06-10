@@ -47,7 +47,7 @@ class BallQueue:
         return len(self._collected)
 
 
-def plan_route(ctx, detection):
+def plan_route(ctx, robot, balls, obstacals):
     """
     Fase 2: Beregn optimal raekkefoelge for boldopsamling.
 
@@ -66,17 +66,13 @@ def plan_route(ctx, detection):
     Returns:
         BallQueue med bolde sorteret efter prioritet
     """
-    robot_x = detection.robot_x
-    robot_y = detection.robot_y
-    balls = list(detection.balls)
-
     if not balls:
         print("[Ruteplaner] Ingen bolde at planlaegge rute for")
         return BallQueue([])
 
     # Separer orange og hvide bolde
-    orange = [b for b in balls if b[2] == "orange"]
-    white = [b for b in balls if b[2] != "orange"]
+    orange = [b for b in balls if b[color] == "orange"]
+    white = [b for b in balls if b[color] != "orange"]
 
     # Sorter hvide efter afstand fra robot
     white.sort(key=lambda b: math.hypot(b[0] - robot_x, b[1] - robot_y))

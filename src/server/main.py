@@ -38,7 +38,7 @@ from config import (ROBOT_IP, ARUCO_DICT, ROBOT_MARKER_ID,
 
 from src.server.context import GameContext
 from src.server.helpers.goal_utils import load_goals, compute_waypoint
-from src.server.phases.detection import detect_all
+from src.server.phases.detection import detect_robot, detect_balls, detect_obstacals
 from src.server.phases.route_planner import plan_route
 from src.server.phases.drive_to_ball import drive_to_ball
 from src.server.phases.ball_collection import collect_ball
@@ -122,8 +122,10 @@ def main():
             # Fase 1: Detekter (se elementer, gem positioner)
             # -----------------------------------------------------------
             print("\n>>> FASE 1: DETEKTION <<<")
-            detection = detect_all(ctx)
-            if detection is None:
+            robot = detect_robot(ctx)
+            balls = detect_balls(ctx)
+            obstacals = detect_obstacals(ctx)
+            if robot is None or balls is None or obstacals:
                 print("Detektion fejlede. Proever igen...")
                 continue
 
@@ -131,7 +133,7 @@ def main():
             # Fase 2: Lav rute (prioritetskoee)
             # -----------------------------------------------------------
             print("\n>>> FASE 2: RUTEPLANLAEGNING <<<")
-            queue = plan_route(ctx, detection)
+            queue = plan_route(ctx, robot, balls, obstacals)
 
             if not queue.has_balls():
                 print("Ingen bolde fundet. Afslutter.")
