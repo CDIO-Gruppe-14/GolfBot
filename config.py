@@ -173,7 +173,7 @@ ROBOT_MARKER_ID = 42
 # Rotations-kompensation hvis markøren er monteret skævt (grader).
 # 0 = top-kanten peger mod robottens front (standard).
 # 90 = markøren er roteret 90° med uret, osv.
-ROBOT_MARKER_ROTATION_OFFSET = 0
+ROBOT_MARKER_ROTATION_OFFSET = -90
 
 # Bane-hjørne-markører (rækkefølge: TL, TR, BR, BL)
 FIELD_MARKER_IDS = [0, 1, 2, 3]

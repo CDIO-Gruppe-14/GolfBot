@@ -65,7 +65,7 @@ def drive_to_ball(ctx, ball):
         time.sleep(0.2)
 
         # --- Find robot position ---
-        detect_robot
+        detect_robot(ctx)
         if ctx.robot is None:
             print("[{}] Kan ikke finde robot...".format(ctx.iteration))
             continue
