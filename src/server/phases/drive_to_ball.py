@@ -25,6 +25,8 @@ from src.server.helpers.navigation import (
 )
 from src.planning.command_generator import compute_turn_only
 
+from src.server.phases.detection import detect_robot
+
 from config import (MIN_TURN_DEGREES, MIN_DISTANCE_CM,
                     APPROACH_DISTANCE_CM, COLLECTOR_OFFSET_CM)
 
@@ -53,35 +55,30 @@ def drive_to_ball(ctx, ball):
     Returns:
         True hvis bolden er naaet, False ved fejl.
     """
-    target_x, target_y = ball[0], ball[1]
+    target_x, target_y = ball.x, ball.y
     print("\n" + "=" * 60)
     print("[KoerTilBold] Navigation mod {} bold paa ({:.1f}, {:.1f})".format(
-        ball[2], target_x, target_y))
+        ball.color, target_x, target_y))
 
     while True:
         ctx.iteration += 1
         time.sleep(0.2)
 
         # --- Find robot position ---
-        robot_result = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
-        if robot_result is None:
+        detect_robot
+        if ctx.robot is None:
             print("[{}] Kan ikke finde robot...".format(ctx.iteration))
             continue
 
-        rx, ry, direct_heading = robot_result
-
-        # Brug direkte heading fra ArUco
-        ctx.estimated_heading = direct_heading
-
         # --- Beregn drejning og afstand ---
         turn_angle, distance = compute_turn_only(
-            rx, ry, ctx.estimated_heading, target_x, target_y)
+            ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
 
         print("-" * 60)
         print("[{}] Robot: ({:.1f}, {:.1f})  Bold: ({:.1f}, {:.1f})".format(
-            ctx.iteration, rx, ry, target_x, target_y))
+            ctx.iteration, ctx.robot.x, ctx.robot.y, target_x, target_y))
         print("[{}] Heading: {:.1f}  Turn: {:.1f}  Dist: {:.1f} cm".format(
-            ctx.iteration, ctx.estimated_heading, turn_angle, distance))
+            ctx.iteration, ctx.robot.heading, turn_angle, distance))
 
         # --- BOLD NAAET ---
         if distance < STOP_DISTANCE_CM:
@@ -112,7 +109,7 @@ def drive_to_ball(ctx, ball):
             continue
 
         # Koer fremad
-        if not execute_forward(ctx, distance, rx, ry):
+        if not execute_forward(ctx, distance, ctx.robot.x, ctx.robot.y):
             return False
 
 
@@ -126,14 +123,14 @@ def _precision_approach(ctx, turn_angle, distance):
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:
             return False
-        ctx.estimated_heading += turn_angle
-        ctx.estimated_heading = (ctx.estimated_heading + 180) % 360 - 180
+        ctx.robot.heading += turn_angle
+        ctx.robot.heading = (ctx.robot.heading + 180) % 360 - 180
         time.sleep(0.3)
         robot_after = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
         if robot_after is not None:
             _, _, dh = robot_after
             if dh is not None:
-                ctx.estimated_heading = dh
+                ctx.robot.heading = dh
         return False  # Tag nyt billede og tjek vinkel igen
 
     # Fase B: Vinkel er rettet -- koer den praecise afstand
