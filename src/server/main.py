@@ -23,6 +23,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from src.entities.robot import Robot
+
 from src.vision.camera import RobotCamera
 from src.vision.color_detector import ColorDetector
 from src.vision.robot_tracker import RobotTracker
@@ -98,12 +100,14 @@ def setup():
         client=client,
         goal_a_cm=goal_a_cm,
         goal_b_cm=goal_b_cm,
-        goal_a_waypoint=goal_a_waypoint
+        goal_a_waypoint=goal_a_waypoint,
+        robot=Robot()
     )
 
 
 def main():
     ctx = setup()
+    detect_robot(ctx)
     if ctx is None:
         return
 
@@ -122,10 +126,9 @@ def main():
             # Fase 1: Detekter (se elementer, gem positioner)
             # -----------------------------------------------------------
             print("\n>>> FASE 1: DETEKTION <<<")
-            robot = detect_robot(ctx)
             balls = detect_balls(ctx)
             obstacals = detect_obstacals(ctx)
-            if robot is None or balls is None or obstacals:
+            if balls is None or obstacals is None:
                 print("Detektion fejlede. Proever igen...")
                 continue
 
@@ -133,7 +136,7 @@ def main():
             # Fase 2: Lav rute (prioritetskoee)
             # -----------------------------------------------------------
             print("\n>>> FASE 2: RUTEPLANLAEGNING <<<")
-            queue = plan_route(ctx, robot, balls, obstacals)
+            queue = plan_route(ctx, balls, obstacals)
 
             if not queue.has_balls():
                 print("Ingen bolde fundet. Afslutter.")

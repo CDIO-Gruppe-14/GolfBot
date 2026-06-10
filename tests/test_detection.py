@@ -12,6 +12,8 @@ from src.vision.color_detector import ColorDetector
 from src.vision.field_map import FieldMap
 from src.vision.robot_tracker import RobotTracker
 
+from src.entities.robot import Robot
+
 
 class TestPhase1Detection(unittest.TestCase):
     def test_phase1_with_camera(self):
@@ -32,20 +34,20 @@ class TestPhase1Detection(unittest.TestCase):
                 ball_detector=BallDetector(detector),
                 field_map=FieldMap(),
                 estimated_heading=None,
+                robot = Robot()
             )
-
-            robot = detect_robot(ctx)
+            detect_robot(ctx)
             balls = detect_balls(ctx)
             obstacles = detect_obstacals(ctx)
 
             print("\n--- Phase 1 resultater ---")
-            print(f"Robot: {robot}")
+            print(f"Robot: {ctx.robot}")
             print(f"Bolde fundet: {len(balls)}")
             for ball in balls:
                 print(f"  {ball}")
             print(f"Forhindringer fundet: {len(obstacles)}")
 
-            self.assertIsNotNone(robot)
+            self.assertIsNotNone(ctx.robot)
             self.assertIsInstance(balls, list)
             self.assertIsInstance(obstacles, list)
 

@@ -46,17 +46,15 @@ def detect_robot(ctx):
         print("[Detektion] FEJL: Kunne ikke finde robot paa banen")
         return None
 
-    rx, ry = ctx.field_map.pixel_to_cm(robot.x, robot.y)
+    ctx.robot.x, ctx.robot.y = ctx.field_map.pixel_to_cm(robot.x, robot.y)
     heading = extract_heading(robot, ctx.field_map)
 
     # Opdater heading i context
-    ctx.estimated_heading = heading
-
-    robot = Robot(rx, ry, heading)
+    ctx.robot.heading = heading
     
-    print(f"[Detection] {robot}")
+    print(f"[Detection] {ctx.robot}")
 
-    return robot
+    return
     
 def detect_balls(ctx):
     frame = get_fresh_frame(ctx.camera)

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+from src.entities.robot import Robot
 
 
 @dataclass
@@ -14,7 +15,7 @@ class RobotTracker:
         self.aruco = aruco_detector
         self.robot_id = robot_marker_id
 
-    def locate(self, frame, detections=None) -> Optional[RobotPosition]:
+    def locate(self, frame, detections=None) -> Robot:
         """Find robot via ArUco-markør. 
         Returnerer RobotPosition med position OG heading."""
         if detections is None:
@@ -28,5 +29,5 @@ class RobotTracker:
         corners = detections[self.robot_id]
         cx, cy = self.aruco.get_center(corners)
         heading = self.aruco.get_heading_deg(corners, rotation_offset=ROBOT_MARKER_ROTATION_OFFSET)
-        
-        return RobotPosition(x=cx, y=cy, heading_deg=heading)
+    
+        return Robot(cx, cy, heading)
