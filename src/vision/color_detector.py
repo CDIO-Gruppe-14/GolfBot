@@ -29,12 +29,15 @@ class ColorDetector:
     def __init__(self, min_area: int = COLOR_MIN_AREA):
         self.profiles: dict[str, dict] = {}
         self.min_area = min_area
+        self._missing_warned: set[str] = set()
 
     def load_profile(self, name: str) -> bool:
         path = os.path.join(PROFILES_DIR, f"{name}.json")
         if not os.path.exists(path):
-            print(f"  [ColorDetector] Profil ikke fundet: {path}")
-            print(f"  Kør først: python src/vision/color_calibrator.py {name}")
+            if name not in self._missing_warned:
+                print(f"  [ColorDetector] Profil ikke fundet: {path}")
+                print(f"  Kør først: python src/vision/color_calibrator.py {name}")
+                self._missing_warned.add(name)
             return False
         with open(path) as f:
             self.profiles[name] = json.load(f)
@@ -218,6 +221,8 @@ def draw_detection(frame, result: DetectionResult,
 if __name__ == "__main__":
     import sys
     from camera import RobotCamera
+    from aruco_detector import ArucoDetector
+    from config import ARUCO_DICT, ROBOT_MARKER_ID, FIELD_MARKER_IDS, FIELD_CORNERS_PX
 
     DRAW_COLORS = [
         (0, 255, 0), (255, 0, 0), (0, 0, 255),
@@ -242,7 +247,25 @@ if __name__ == "__main__":
     print(f"\nIndlæste profiler: {loaded}")
     print("Tryk 'q' for at afslutte\n")
 
+    # Initialiser ArUco Detector
+    aruco = ArucoDetector(ARUCO_DICT)
+
+    # Indlæs banens hjørner til tegning (hvis de findes)
+    CALIBRATION_FILE = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "calibration", "field_corners.json"
+    )
+    corners_loaded = []
+    if os.path.exists(CALIBRATION_FILE):
+        try:
+            with open(CALIBRATION_FILE) as f:
+                corners_loaded = json.load(f).get("corners", [])
+            print(f"Indlæste banens hjørner fra {CALIBRATION_FILE}")
+        except Exception as e:
+            print(f"Fejl ved indlæsning af field_corners.json: {e}")
+
     camera = RobotCamera()
+    last_live_corners = None
     try:
         while True:
             frame = camera.get_frame()
@@ -251,7 +274,78 @@ if __name__ == "__main__":
 
             annotated = frame.copy()
 
-            # Tegn ROI (rød baneramme) hvis fundet
+            # Detektér ArUco-markører live
+            detections = aruco.detect(frame)
+
+            # 1. Tegn banekanter (Prioritet: 1. Live ArUco, 2. Last known live, 3. Gemt JSON, 4. Config fallback)
+            live_corners = []
+            found_all_live = True
+            for cid in FIELD_MARKER_IDS:
+                if cid in detections:
+                    live_corners.append(aruco.get_center(detections[cid]))
+                else:
+                    found_all_live = False
+
+            if found_all_live:
+                # Gem til memory
+                last_live_corners = live_corners
+                # Tegn med en tyk grøn linje
+                pts = np.array(live_corners, dtype=np.int32)
+                cv2.polylines(annotated, [pts], isClosed=True, color=(0, 255, 0), thickness=3)
+                for idx, pt in enumerate(live_corners):
+                    cv2.circle(annotated, (int(pt[0]), int(pt[1])), 8, (0, 255, 0), -1)
+                    cv2.putText(annotated, f"Live Hjoerne {idx}", (int(pt[0]) + 10, int(pt[1]) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            elif last_live_corners is not None:
+                # Brug seneste kendte live-position (lidt mørkere grøn for at vise det er fra hukommelsen)
+                pts = np.array(last_live_corners, dtype=np.int32)
+                cv2.polylines(annotated, [pts], isClosed=True, color=(0, 180, 0), thickness=2)
+                for idx, pt in enumerate(last_live_corners):
+                    cv2.circle(annotated, (int(pt[0]), int(pt[1])), 6, (0, 180, 0), -1)
+                    cv2.putText(annotated, f"Live Hjoerne {idx} (memory)", (int(pt[0]) + 10, int(pt[1]) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 180, 0), 1)
+            elif corners_loaded and len(corners_loaded) == 4:
+                # Hvis vi har gemte hjørner: Tegn med orange linje
+                pts = np.array(corners_loaded, dtype=np.int32)
+                cv2.polylines(annotated, [pts], isClosed=True, color=(255, 100, 0), thickness=2)
+                for idx, pt in enumerate(corners_loaded):
+                    pt_int = (int(pt[0]), int(pt[1]))
+                    cv2.circle(annotated, pt_int, 6, (255, 100, 0), -1)
+                    cv2.putText(annotated, f"Hjoerne {idx} (gemt)", (pt_int[0] + 8, pt_int[1] - 8),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 100, 0), 1)
+            else:
+                # Fallback fra config.py: Tegn med tynd blå linje
+                pts = np.array(FIELD_CORNERS_PX, dtype=np.int32)
+                cv2.polylines(annotated, [pts], isClosed=True, color=(255, 0, 0), thickness=1)
+                for idx, pt in enumerate(FIELD_CORNERS_PX):
+                    pt_int = (int(pt[0]), int(pt[1]))
+                    cv2.circle(annotated, pt_int, 4, (255, 0, 0), -1)
+                    cv2.putText(annotated, f"Hjoerne {idx} (fallback)", (pt_int[0] + 8, pt_int[1] - 8),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 0), 1)
+
+            # 2. Tegn alle detekterede ArUco-markører live
+            for cid, corners in detections.items():
+                pts = corners.astype(np.int32)
+                # Banemarkører tegnes grønne, andre lilla
+                color = (0, 255, 0) if cid in FIELD_MARKER_IDS else (255, 0, 255)
+                cv2.polylines(annotated, [pts], isClosed=True, color=color, thickness=2)
+                
+                center = aruco.get_center(corners)
+                label = f"ID {cid}"
+                if cid == ROBOT_MARKER_ID:
+                    # Beregn og tegn robottens retning (heading)
+                    heading = aruco.get_heading_deg(corners)
+                    label = f"Robot ID {cid} ({heading:.1f} deg)"
+                    # Tegn retningspil
+                    tl, tr = corners[0], corners[1]
+                    front_mid = ((tl[0] + tr[0]) / 2, (tl[1] + tr[1]) / 2)
+                    cv2.arrowedLine(annotated, (int(center[0]), int(center[1])), 
+                                    (int(front_mid[0]), int(front_mid[1])), 
+                                    (0, 0, 255), 3, tipLength=0.3)
+                cv2.putText(annotated, label, (int(center[0]) - 30, int(center[1]) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+            # 3. Tegn ROI (rød baneramme) hvis fundet via farvedetektion
             roi = detector.detect_field_roi(frame)
             if roi is not None:
                 rx, ry, rw, rh = roi
@@ -259,7 +353,7 @@ if __name__ == "__main__":
                 cv2.putText(annotated, "ROI", (rx + 5, ry + 25),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
-            # Detektér bolde inden for ROI
+            # 4. Detektér bolde inden for ROI
             ball_profiles = {k: v for k, v in detector.profiles.items() if k != "roed"}
             for i, name in enumerate(ball_profiles):
                 draw_color = DRAW_COLORS[i % len(DRAW_COLORS)]

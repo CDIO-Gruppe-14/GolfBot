@@ -11,6 +11,7 @@ from src.vision.camera import RobotCamera
 from src.vision.color_detector import ColorDetector
 from src.vision.field_map import FieldMap
 from src.vision.robot_tracker import RobotTracker
+from src.vision.aruco_detector import ArucoDetector
 
 from src.entities.robot import Robot
 
@@ -24,13 +25,15 @@ class TestPhase1Detection(unittest.TestCase):
                 self.fail("Kameraet kunne ikke levere et frame")
 
             detector = ColorDetector()
+            aruco_detector = ArucoDetector()
+            
             loaded_profiles = detector.load_all_profiles()
             if not loaded_profiles:
                 self.fail("Ingen farveprofiler blev indlæst fra color_profiles/. Kør kalibrering først.")
 
             ctx = SimpleNamespace(
                 camera=camera,
-                tracker=RobotTracker(detector),
+                tracker=RobotTracker(aruco_detector),
                 ball_detector=BallDetector(detector),
                 field_map=FieldMap(),
                 estimated_heading=None,
