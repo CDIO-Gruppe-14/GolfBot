@@ -13,9 +13,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from src.server.helpers.command_utils import send_and_verify
+from src.entities.ball import Ball
 
 
-def collect_ball(ctx, ball, queue):
+def collect_ball(ctx, ball):
     """
     Fase 4: Opsam bolden.
 
@@ -25,12 +26,11 @@ def collect_ball(ctx, ball, queue):
 
     Args:
         ctx: GameContext
-        ball: (x_cm, y_cm, color) tuple
-        queue: BallQueue -- bolden markeres som opsamlet her
+        ball: Ball-objekt fra køen
+        queue: deque med resterende bolde
     """
     ctx.iteration += 1
-    print("\n[{}] [Opsamling] Opsamler {} bold paa ({:.1f}, {:.1f})".format(
-        ctx.iteration, ball[2], ball[0], ball[1]))
+    print("\n [Opsamling] Opsamler bold paa ({ball.x}, {ball.y})")
 
     # Koer roligt frem over bolden
     # COLLECTION_SPEED bruges til at styre motorhastighed (langsom koersel)
@@ -39,8 +39,5 @@ def collect_ball(ctx, ball, queue):
     send_and_verify(ctx.client, "FORWARD", 5.0)
     time.sleep(0.5)
 
-    # Marker som opsamlet
-    queue.mark_collected(ball)
-    print("[{}] [Opsamling] Bold opsamlet! {} bolde tilbage i koeen.".format(
-        ctx.iteration, queue.remaining()))
+    print("[{}] [Opsamling] Bold opsamling afsluttet!")
 

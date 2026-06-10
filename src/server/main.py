@@ -107,9 +107,10 @@ def setup():
 
 def main():
     ctx = setup()
-    detect_robot(ctx)
     if ctx is None:
         return
+
+    detect_robot(ctx)
 
     print("\n" + "=" * 60)
     print("GolfBot startet -- foelger whiteboard-flow")
@@ -138,7 +139,7 @@ def main():
             print("\n>>> FASE 2: RUTEPLANLAEGNING <<<")
             queue = plan_route(ctx, balls, obstacals)
 
-            if not queue.has_balls():
+            if not queue:
                 print("Ingen bolde fundet. Afslutter.")
                 break
 
@@ -146,20 +147,21 @@ def main():
             # Fase 3 + 4: Opsam alle bolde (while bold != null)
             # -----------------------------------------------------------
             print("\n>>> FASE 3+4: OPSAMLING AF {} BOLDE <<<".format(
-                queue.remaining()))
+                len(queue)))
 
-            while queue.has_balls():
-                ball = queue.next()
+            while queue:
+                ball = queue[0]
 
                 # Fase 3: Koer til bold
                 success = drive_to_ball(ctx, ball)
                 if not success:
                     print("Koersel til bold fejlede. Springer over.")
-                    queue.mark_collected(ball)
+                    queue.popleft()
                     continue
 
                 # Fase 4: Opsam bold
-                collect_ball(ctx, ball, queue)
+                collect_ball(ctx, ball)
+                queue.popleft()
 
             # -----------------------------------------------------------
             # Fase 5: Koer til maal
@@ -177,13 +179,12 @@ def main():
             # Fase 7: Detekter for ny runde
             # -----------------------------------------------------------
             print("\n>>> FASE 7: NY DETEKTION <<<")
-            detection = detect_all(ctx)
-            if detection is None or not detection.has_balls():
+            balls = detect_balls(ctx)
+            if balls is None or not balls:
                 print("Alle bolde samlet op. Afslutter.")
                 break
 
-            print("{} bolde tilbage -- starter ny runde!".format(
-                len(detection.balls)))
+            print("{} bolde tilbage -- starter ny runde!".format(len(balls)))
             # Loop fortsaetter -> ny rute fra fase 2
 
     except KeyboardInterrupt:

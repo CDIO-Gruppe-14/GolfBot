@@ -50,13 +50,10 @@ flowchart TD
 ### Fase 2: Lav Rute (`phases/route_planner.py`)
 - Modtager alle boldpositioner fra detektion
 - Sorterer bolde i en prioritetskoee:
-  - Orange bold foerst (200 bonuspoint)
-  - Derefter taetteste bold foerst
-- Returnerer en `BallQueue` man kan loope igennem
+    - Orange bold foerst (200 bonuspoint)
+    - Derefter taetteste bold foerst
+ Returnerer en standard `deque` man kan loope igennem
 - **Forberedt til A\***: Naar `pathfinder.py` implementeres, kan ruten tage hoejde for forhindringer
-
-### Fase 3: Koer til Bold (`phases/drive_to_ball.py`)
-- Navigerer mod en specifik bold fra koeen
 - Loebende korrektion via kamera (turn → verify → forward → verify)
 - Praecisions-tilnaermelse naar robotten er taet paa
 - Stopper foran bolden med korrekt vinkel og afstand
@@ -157,20 +154,26 @@ def main():
     ctx = setup()
 
     while True:
-        detection = detect_all(ctx)           # Fase 1
-        queue = plan_route(ctx, detection)    # Fase 2
+        # Fase 1: Detekter bolde og forhindringer
+        balls = detect_balls(ctx)
+        obstacals = detect_obstacals(ctx)
 
-        while queue.has_balls():              # While bold != null
-            ball = queue.next()
+        # Fase 2: Lav rute (returnerer en standard deque)
+        queue = plan_route(ctx, balls, obstacals)
+
+        # Fase 3+4: Hent og opsaml bolde fra koeen
+        while queue:
+            ball = queue[0]
             drive_to_ball(ctx, ball)          # Fase 3
-            collect_ball(ctx, ball, queue)    # Fase 4
+            collect_ball(ctx, ball, queue)    # Fase 4 (fjerner via popleft())
 
         drive_to_goal(ctx)                    # Fase 5
         deliver_balls(ctx)                    # Fase 6
 
-        detection = detect_all(ctx)           # Fase 7
-        if not detection.has_balls():
-            break                             # End
+        # Fase 7: Tjek om der er flere bolde
+        balls = detect_balls(ctx)
+        if not balls:
+            break
 ```
 
 > **130 linjer** i stedet for de gamle 415. Al logik er delegeret til faserne.
