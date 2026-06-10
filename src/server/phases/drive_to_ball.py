@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 from src.server.helpers.camera_utils import find_robot
 from src.server.helpers.command_utils import send_and_verify
 from src.server.helpers.navigation import (
-    calibrate_heading, execute_turn, execute_forward
+    execute_turn, execute_forward
 )
 from src.planning.command_generator import compute_turn_only
 
@@ -32,10 +32,7 @@ from config import (MIN_TURN_DEGREES, MIN_DISTANCE_CM,
 # Variabel til at styre praecis afstand (naevnt paa whiteboard).
 STOP_DISTANCE_CM = MIN_DISTANCE_CM
 
-# Mindste drejningsvinkel i praecisions-zonen (grader).
-# Hoejere end MIN_TURN_DEGREES fordi kamera-stoej giver store
-# vinkelfejl paa kort afstand (2 cm stoej ved 10 cm = ~11 grader fejl).
-PRECISION_MIN_TURN_DEGREES = 8.0
+PRECISION_MIN_TURN_DEGREES = 5.0
 
 
 def drive_to_ball(ctx, ball):
@@ -73,14 +70,8 @@ def drive_to_ball(ctx, ball):
 
         rx, ry, direct_heading = robot_result
 
-        # Brug direkte heading fra dobbelt-markoer hvis tilgaengelig
-        if direct_heading is not None:
-            ctx.estimated_heading = direct_heading
-
-        # --- Heading kalibrering (hvis ukendt) ---
-        if ctx.estimated_heading is None:
-            calibrate_heading(ctx, rx, ry)
-            continue
+        # Brug direkte heading fra ArUco
+        ctx.estimated_heading = direct_heading
 
         # --- Beregn drejning og afstand ---
         turn_angle, distance = compute_turn_only(

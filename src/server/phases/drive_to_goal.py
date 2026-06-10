@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 from src.server.helpers.camera_utils import find_robot
 from src.server.helpers.navigation import (
-    calibrate_heading, execute_turn, execute_forward
+    execute_turn, execute_forward
 )
 from src.planning.command_generator import compute_turn_only
 
@@ -71,12 +71,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
             continue
 
         rx, ry, direct_heading = robot_result
-        if direct_heading is not None:
-            ctx.estimated_heading = direct_heading
-
-        if ctx.estimated_heading is None:
-            calibrate_heading(ctx, rx, ry)
-            continue
+        ctx.estimated_heading = direct_heading
 
         turn_angle, distance = compute_turn_only(
             rx, ry, ctx.estimated_heading, target_x, target_y)

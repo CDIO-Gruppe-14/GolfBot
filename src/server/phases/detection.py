@@ -27,7 +27,7 @@ class DetectionResult:
     """Resultat af en fuld detektion af banen."""
     robot_x: float
     robot_y: float
-    robot_heading: float          # Grader, None hvis kun en markoer
+    robot_heading: float          # Grader (altid tilgængelig via ArUco)
     balls: list                   # Liste af (x_cm, y_cm, color) tupler
     obstacles: list               # Liste af (x_cm, y_cm, radius_cm) -- forberedt til A*
 
@@ -63,9 +63,8 @@ def detect_all(ctx):
     rx, ry = ctx.field_map.pixel_to_cm(robot.x, robot.y)
     heading = extract_heading(robot, ctx.field_map)
 
-    # Opdater heading i context hvis tilgaengelig
-    if heading is not None:
-        ctx.estimated_heading = heading
+    # Opdater heading i context
+    ctx.estimated_heading = heading
 
     # Find alle bolde
     all_balls = ctx.ball_detector.find_all_balls(frame)
@@ -78,8 +77,8 @@ def detect_all(ctx):
     # TODO: Brug ObstacleDetector naar den er implementeret
     obstacles_cm = []
 
-    print("[Detektion] Robot: ({:.1f}, {:.1f})  Heading: {}".format(
-        rx, ry, "{:.1f}".format(heading) if heading else "ukendt"))
+    print("[Detektion] Robot: ({:.1f}, {:.1f})  Heading: {:.1f}".format(
+        rx, ry, heading))
     print("[Detektion] Fandt {} bolde, {} forhindringer".format(
         len(balls_cm), len(obstacles_cm)))
     for i, (bx, by, color) in enumerate(balls_cm):

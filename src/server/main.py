@@ -28,10 +28,13 @@ from src.vision.color_detector import ColorDetector
 from src.vision.robot_tracker import RobotTracker
 from src.vision.ball_detector import BallDetector
 from src.vision.field_map import FieldMap
+from src.vision.aruco_detector import ArucoDetector
+from src.vision.goal_detector import GoalDetector
 from src.communication.connection import PCClient
 from src.communication.protocol import encode_command
 
-from config import ROBOT_IP, MARKER_COLOR, MARKER_COLOR_BACK
+from config import (ROBOT_IP, ARUCO_DICT, ROBOT_MARKER_ID,
+                    GOAL_A_MARKER_ID, GOAL_B_MARKER_ID)
 
 from src.server.context import GameContext
 from src.server.helpers.goal_utils import load_goals, compute_waypoint
@@ -46,25 +49,45 @@ from src.server.phases.delivery import deliver_balls
 def setup():
     """Initialiserer hardware og returnerer GameContext."""
     camera = RobotCamera()
+    # ArUco
+    aruco = ArucoDetector(ARUCO_DICT)
+    tracker = RobotTracker(aruco, ROBOT_MARKER_ID)
+
+    # HSV-farvedetektion (bevares for bolde)
     detector = ColorDetector()
     loaded = detector.load_all_profiles()
     print("Indlaedte farveprofiler: {}".format(loaded))
-
-    tracker = RobotTracker(detector, marker_color=MARKER_COLOR,
-                           marker_color_back=MARKER_COLOR_BACK)
     ball_det = BallDetector(detector)
-    field_map = FieldMap()
+    
+    # Banekalibrering via ArUco
+    field_map = FieldMap(aruco_detector=aruco)
     client = PCClient(ROBOT_IP)
-
+    
     print("Forbinder til EV3...")
     if not client.connect_to_robot():
         print("Kunne ikke forbinde til robotten. Afslutter.")
         return None
-
     print("Forbundet!")
 
-    # Indlaes maalkoordinater
-    goal_a_cm, goal_b_cm = load_goals()
+    # Tag et test-billede til kalibrering
+    frame = camera.get_frame()
+    if frame is not None:
+        if not field_map.calibrate_from_aruco(frame):
+            print("ArUco bane-kalibrering fejlede — bruger fallback")
+        else:
+            print("ArUco bane-kalibrering succes!")
+
+    # Mål via ArUco med fallback
+    goal_det = GoalDetector(aruco, field_map, GOAL_A_MARKER_ID, GOAL_B_MARKER_ID)
+    goal_a_aruco, goal_b_aruco = goal_det.detect_goals(frame) if frame is not None else (None, None)
+    
+    goal_a_fallback, goal_b_fallback = load_goals()
+    goal_a_cm = goal_a_aruco if goal_a_aruco else goal_a_fallback
+    goal_b_cm = goal_b_aruco if goal_b_aruco else goal_b_fallback
+    
+    if goal_a_aruco: print(f"Mål A fundet via ArUco: {goal_a_cm}")
+    if goal_b_aruco: print(f"Mål B fundet via ArUco: {goal_b_cm}")
+
     goal_a_waypoint = compute_waypoint(goal_a_cm[0], goal_a_cm[1], offset_cm=20.0)
 
     return GameContext(

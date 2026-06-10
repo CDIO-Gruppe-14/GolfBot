@@ -10,7 +10,7 @@ CALIBRATION_FILE = os.path.join(
 
 
 class FieldMap:
-    def __init__(self, field_corners_px=None, field_size_cm=None):
+    def __init__(self, field_corners_px=None, field_size_cm=None, aruco_detector=None):
         """
         field_corners_px: de 4 hjørner af banen i pixelkoordinater
         [(øverst-venstre), (øverst-højre), (nederst-højre), (nederst-venstre)]
@@ -26,12 +26,37 @@ class FieldMap:
 
         if field_size_cm is None:
             field_size_cm = FIELD_SIZE_CM
+            
+        self.field_size_cm = field_size_cm
+        self.aruco = aruco_detector
 
         if field_corners_px is None:
             field_corners_px = self._load_corners(fallback=FIELD_CORNERS_PX)
 
         self.corners = field_corners_px
         self.M = self._compute_transform(field_corners_px, field_size_cm)
+        
+    def calibrate_from_aruco(self, frame) -> bool:
+        """Find 4 hjørne-markører og beregn perspektiv-transformation."""
+        if not self.aruco:
+            return False
+            
+        from config import FIELD_MARKER_IDS
+        detections = self.aruco.detect(frame)
+        
+        corner_ids = FIELD_MARKER_IDS  # [0, 1, 2, 3] fra config
+        found = [corner_ids[i] in detections for i in range(4)]
+        
+        if not all(found):
+            missing = [corner_ids[i] for i in range(4) if not found[i]]
+            print(f"Mangler bane-markører: {missing}")
+            return False
+        
+        corners_px = [self.aruco.get_center(detections[cid]) 
+                      for cid in corner_ids]
+        self.corners = corners_px
+        self.M = self._compute_transform(corners_px, self.field_size_cm)
+        return True
 
     @staticmethod
     def _load_corners(fallback) -> list:

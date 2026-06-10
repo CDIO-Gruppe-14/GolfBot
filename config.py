@@ -93,14 +93,8 @@ PROFILES_DIR = "color_profiles"
 # Brugt i: src/vision/ball_detector.py  (linje 15)
 BALL_COLORS = ["orange", "white"]
 
-# Farveprofil-navn for robotmarkøren (sticker/farvet objekt på robotten)
-# Brugt i: src/server/main.py  og  src/vision/robot_tracker.py
-MARKER_COLOR = "green"
-
 # Sekundær markør på bagsiden af robotten for direkte heading-måling.
-# Sæt til None for single-markør mode (heading beregnes fra bevægelse).
-# Sæt til f.eks. "blue" når I monterer en anden farvet markør bag på robotten.
-MARKER_COLOR_BACK = "blue"
+# (Fjernet: Nu bruges ArUco-markører til robot-tracking og heading)
 
 # Morfologi kernel-størrelse til støjreduktion i masker
 # Brugt i: src/vision/color_detector.py  (linje 63) og hsv_utils.py  (linje 24)
@@ -164,4 +158,27 @@ DELIVER_DISTANCE_CM = 10
 # Målt i cm.
 GOAL_A_CM = (90.0, 0.0)    # Standard placering top midt
 GOAL_B_CM = (90.0, 120.0)  # Standard placering bund midt
+
+# ===========================================================================
+# 8. ARUCO MARKØRER
+# ===========================================================================
+import cv2
+
+# Dictionary-type (4×4 = mindst grid -> bedst detektion)
+ARUCO_DICT = cv2.aruco.DICT_4X4_50
+
+# Robot-markør
+ROBOT_MARKER_ID = 42
+
+# Rotations-kompensation hvis markøren er monteret skævt (grader).
+# 0 = top-kanten peger mod robottens front (standard).
+# 90 = markøren er roteret 90° med uret, osv.
+ROBOT_MARKER_ROTATION_OFFSET = 0
+
+# Bane-hjørne-markører (rækkefølge: TL, TR, BR, BL)
+FIELD_MARKER_IDS = [0, 1, 2, 3]
+
+# Mål-markører  
+GOAL_A_MARKER_ID = 10
+GOAL_B_MARKER_ID = 11
 

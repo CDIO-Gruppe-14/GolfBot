@@ -27,7 +27,7 @@ def compute_waypoint(gx, gy, field_width=180.0, field_height=120.0, offset_cm=30
 
 
 def load_goals():
-    """Hent maalkoordinater fra fil eller config."""
+    """Hent maalkoordinater fra fil eller config (bruges som fallback hvis ArUco fejler)."""
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))))
