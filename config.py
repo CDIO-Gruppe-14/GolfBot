@@ -127,14 +127,6 @@ FIELD_CORNERS_PX = [
 # ===========================================================================
 # Brugt i: src/planning/command_generator.py  (linje 30 og 34)
 
-# Mindste drejningsvinkel der sendes som kommando (grader)
-# Drej under denne grænse ignoreres (dead-zone)
-MIN_TURN_DEGREES = 2.0
-
-# Mindste afstand der sendes som FORWARD-kommando (cm)
-# Stop hvis vi allerede er tæt nok på bolden
-MIN_DISTANCE_CM = 3.0
-
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
@@ -142,7 +134,7 @@ COLLECTOR_OFFSET_CM = 1
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 15.0
+MAX_STEP_CM = 30.0
 
 # Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
 # Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).

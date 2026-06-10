@@ -35,9 +35,16 @@ def collect_ball(ctx, ball):
     # Koer roligt frem over bolden
     # COLLECTION_SPEED bruges til at styre motorhastighed (langsom koersel)
     # TODO: Implementer langsom koersel via separat kommando eller parameter
+    
+    print("[{}] [Opsamling] Starter motor".format(ctx.iteration))
+    
+    send_and_verify(ctx.client, "COLLECT_START")
+
     print("[{}] [Opsamling] Koerer roligt frem over bolden...".format(ctx.iteration))
     send_and_verify(ctx.client, "FORWARD", 5.0)
-    time.sleep(0.5)
+    time.sleep(3.0)
+    send_and_verify(ctx.client, "COLLECT_STOP")
+    send_and_verify(ctx.client, "FORWARD", -5.0)
 
     print("[{}] [Opsamling] Bold opsamling afsluttet!")
 

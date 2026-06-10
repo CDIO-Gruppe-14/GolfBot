@@ -27,12 +27,11 @@ from src.planning.command_generator import compute_turn_only
 
 from src.server.phases.detection import detect_robot
 
-from config import (MIN_TURN_DEGREES, MIN_DISTANCE_CM,
-                    APPROACH_DISTANCE_CM, COLLECTOR_OFFSET_CM)
+from config import MIN_TURN_DEGREES, APPROACH_DISTANCE_CM
 
 # Afstand (cm) hvor robotten stopper foran bolden.
-# Variabel til at styre praecis afstand (naevnt paa whiteboard).
-STOP_DISTANCE_CM = MIN_DISTANCE_CM
+# Ret denne variabel for at justere, hvor taet robotten skal koere paa bolden.
+STOP_DISTANCE_CM = 2.0
 
 PRECISION_MIN_TURN_DEGREES = 5.0
 
@@ -81,10 +80,16 @@ def drive_to_ball(ctx, ball):
             ctx.iteration, ctx.robot.heading, turn_angle, distance))
 
         # --- BOLD NAAET ---
-        if distance < STOP_DISTANCE_CM:
-            print("[{}] >>> BOLD NAAET! Afstand: {:.1f} cm <<<".format(
-                ctx.iteration, distance))
-            return True
+        # Stop kun naar vi baade er taet nok paa og vender direkte mod bolden.
+        if distance <= STOP_DISTANCE_CM:
+            if abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES:
+                print("[{}] >>> BOLD NAAET! Afstand: {:.1f} cm <<<".format(
+                    ctx.iteration, distance))
+                return True
+
+            if not execute_turn(ctx, turn_angle):
+                return False
+            continue
 
         # --- PRAECISIONS-TILNAERMELSE (taet paa bold) ---
         if distance < APPROACH_DISTANCE_CM:
@@ -123,20 +128,19 @@ def _precision_approach(ctx, turn_angle, distance):
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:
             return False
-        ctx.robot.heading += turn_angle
-        ctx.robot.heading = (ctx.robot.heading + 180) % 360 - 180
         time.sleep(0.3)
-        robot_after = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
-        if robot_after is not None:
-            _, _, dh = robot_after
-            if dh is not None:
-                ctx.robot.heading = dh
+        detect_robot(ctx)
         return False  # Tag nyt billede og tjek vinkel igen
 
-    # Fase B: Vinkel er rettet -- koer den praecise afstand
-    drive_dist = round(distance + COLLECTOR_OFFSET_CM, 1)
-    print("[{}] PRECISION FORWARD {:.1f} cm (dist {:.1f} + offset {:.1f})".format(
-        ctx.iteration, drive_dist, distance, COLLECTOR_OFFSET_CM))
+    # Fase B: Vinkel er rettet -- koer frem til stop-afstanden.
+    drive_dist = round(distance - STOP_DISTANCE_CM, 1)
+    if drive_dist <= 0:
+        print("[{}] Bolden er allerede inden for stop-afstanden ({:.1f} cm)".format(
+            ctx.iteration, STOP_DISTANCE_CM))
+        return True
+
+    print("[{}] PRECISION FORWARD {:.1f} cm (dist {:.1f} - stop {:.1f})".format(
+        ctx.iteration, drive_dist, distance, STOP_DISTANCE_CM))
     if send_and_verify(ctx.client, "FORWARD", drive_dist) is None:
         return False
     time.sleep(0.5)

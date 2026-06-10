@@ -3,7 +3,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import MIN_TURN_DEGREES, MIN_DISTANCE_CM, MAX_STEP_CM
+from config import MAX_STEP_CM
 
 
 def compute_angle_to_ball(robot_x, robot_y, ball_x, ball_y):
