@@ -20,8 +20,8 @@ def extract_heading(robot, field_map):
     # Konvertér pixel-heading til cm-space heading
     # ved at transformere to punkter langs heading-vektoren
     import math
-    dx = math.cos(math.radians(robot.heading_deg))
-    dy = math.sin(math.radians(robot.heading_deg))
+    dx = math.cos(math.radians(robot.heading))
+    dy = math.sin(math.radians(robot.heading))
     
     fx, fy = field_map.pixel_to_cm(robot.x, robot.y)
     tx, ty = field_map.pixel_to_cm(robot.x + dx * 50, robot.y + dy * 50)
