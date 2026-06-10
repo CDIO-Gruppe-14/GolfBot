@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import MARKER_COLOR, MARKER_COLOR_BACK
 from src.server.phases.detection import detect_balls, detect_obstacals, detect_robot
 from src.vision.ball_detector import BallDetector
 from src.vision.camera import RobotCamera
@@ -20,20 +19,16 @@ class TestPhase1Detection(unittest.TestCase):
         try:
             frame = camera.get_frame()
             if frame is None:
-                self.skipTest("Kameraet kunne ikke levere et frame")
+                self.fail("Kameraet kunne ikke levere et frame")
 
             detector = ColorDetector()
             loaded_profiles = detector.load_all_profiles()
             if not loaded_profiles:
-                self.skipTest("Ingen farveprofiler blev indlæst")
+                self.fail("Ingen farveprofiler blev indlæst fra color_profiles/. Kør kalibrering først.")
 
             ctx = SimpleNamespace(
                 camera=camera,
-                tracker=RobotTracker(
-                    detector,
-                    marker_color=MARKER_COLOR,
-                    marker_color_back=MARKER_COLOR_BACK,
-                ),
+                tracker=RobotTracker(detector),
                 ball_detector=BallDetector(detector),
                 field_map=FieldMap(),
                 estimated_heading=None,
