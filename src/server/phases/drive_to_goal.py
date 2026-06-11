@@ -60,8 +60,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
         ctx.iteration += 1
         time.sleep(0.2)
 
-        detect_robot(ctx)
-        if ctx.robot is None:
+        if not detect_robot(ctx):
             print("[{}] Kan ikke finde robot under {} ...".format(
                 ctx.iteration, label))
             continue
@@ -88,4 +87,4 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
             continue
 
         # Fremad
-        execute_forward(ctx, distance, ctx.robot.x, ctx.robot.y)
+        execute_forward(ctx, distance)

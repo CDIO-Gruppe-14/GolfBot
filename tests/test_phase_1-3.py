@@ -20,6 +20,7 @@ from src.vision.camera import RobotCamera
 from src.vision.color_detector import ColorDetector
 from src.vision.robot_tracker import RobotTracker
 from src.vision.ball_detector import BallDetector
+from src.vision.obstacle_detector import ObstacleDetector
 from src.vision.field_map import FieldMap
 from src.vision.aruco_detector import ArucoDetector
 from src.vision.goal_detector import GoalDetector
@@ -31,7 +32,7 @@ from config import (ROBOT_IP, ARUCO_DICT, ROBOT_MARKER_ID,
 
 from src.server.context import GameContext
 from src.server.helpers.goal_utils import load_goals, compute_waypoint
-from src.server.phases.detection import detect_robot, detect_balls, detect_obstacals
+from src.server.phases.detection import detect_robot, detect_balls, detect_obstacles
 from src.server.phases.route_planner import plan_route
 from src.server.phases.drive_to_ball import drive_to_ball
 
@@ -48,6 +49,7 @@ def setup():
     loaded = detector.load_all_profiles()
     print("Indlaedte farveprofiler: {}".format(loaded))
     ball_det = BallDetector(detector)
+    obstacle_det = ObstacleDetector(detector)
 
     # Banekalibrering via ArUco
     field_map = FieldMap(aruco_detector=aruco)
@@ -84,6 +86,7 @@ def setup():
         camera=camera,
         tracker=tracker,
         ball_detector=ball_det,
+        obstacle_detector=obstacle_det,
         field_map=field_map,
         client=client,
         goal_a_cm=goal_a_cm,
@@ -98,7 +101,8 @@ def main():
     if ctx is None:
         return
 
-    detect_robot(ctx)
+    if not detect_robot(ctx):
+        print("ADVARSEL: Robot ikke fundet ved start -- fortsaetter (faserne detekterer igen)")
 
     print("\n" + "=" * 60)
     print("GolfBot TEST -- Fase 1-3")
@@ -110,8 +114,8 @@ def main():
         # -----------------------------------------------------------
         print("\n>>> FASE 1: DETEKTION <<<")
         balls = detect_balls(ctx)
-        obstacals = detect_obstacals(ctx)
-        if balls is None or obstacals is None:
+        obstacles = detect_obstacles(ctx)
+        if balls is None or obstacles is None:
             print("Detektion fejlede. Afslutter test.")
             return
 
@@ -119,7 +123,7 @@ def main():
         # Fase 2: Lav rute (prioritetskø)
         # -----------------------------------------------------------
         print("\n>>> FASE 2: RUTEPLANLAEGNING <<<")
-        queue = plan_route(ctx, balls, obstacals)
+        queue = plan_route(ctx, balls, obstacles)
 
         if not queue:
             print("Ingen bolde fundet. Afslutter test.")

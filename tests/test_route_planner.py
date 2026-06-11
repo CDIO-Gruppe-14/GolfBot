@@ -17,9 +17,9 @@ class TestRoutePlanner(unittest.TestCase):
             field_map=SimpleNamespace(field_size_cm=(180, 120)),
         )
         balls = [
-            Ball("white", 30, 30, "white"),
-            Ball("orange", 10, 10, "orange"),
-            Ball("white", 20, 20, "white"),
+            Ball(30, 30, "white"),
+            Ball(10, 10, "orange"),
+            Ball(20, 20, "white"),
         ]
 
         queue = plan_route(ctx, balls, [])

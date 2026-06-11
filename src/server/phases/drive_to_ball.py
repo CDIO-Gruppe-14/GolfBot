@@ -80,8 +80,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         time.sleep(0.2)
 
         # --- Find robot position ---
-        detect_robot(ctx)
-        if ctx.robot is None:
+        if not detect_robot(ctx):
             print("[{}] Kan ikke finde robot...".format(ctx.iteration))
             continue
 
@@ -137,7 +136,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
             continue
 
         # Koer fremad
-        if not execute_forward(ctx, distance, ctx.robot.x, ctx.robot.y):
+        if not execute_forward(ctx, distance):
             return False
 
 

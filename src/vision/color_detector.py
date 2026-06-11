@@ -1,4 +1,5 @@
 import cv2
+import math
 import numpy as np
 import json
 from dataclasses import dataclass
@@ -8,10 +9,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import COLOR_MIN_AREA, MORPH_KERNEL_SIZE
+from config import COLOR_MIN_AREA, MORPH_KERNEL_SIZE, MIN_CIRCULARITY, MAX_ASPECT_RATIO
 
 from hsv_utils import PROFILES_DIR, build_hsv_mask
-from src.entities.ball import Ball
 
 
 @dataclass
@@ -85,6 +85,9 @@ class ColorDetector:
         """
         min_a = profile.get("min_area", self.min_area) if profile else self.min_area
         max_a = profile.get("max_area") if profile else None
+        # Formfilter (default fra config) — en profil kan opte ud med null
+        min_circ = profile.get("min_circularity", MIN_CIRCULARITY) if profile else MIN_CIRCULARITY
+        max_ar = profile.get("max_aspect_ratio", MAX_ASPECT_RATIO) if profile else MAX_ASPECT_RATIO
         ox, oy = offset
 
         results = []
@@ -94,12 +97,26 @@ class ColorDetector:
                 continue
             if max_a is not None and area > max_a:
                 continue
+            x, y, w, h_box = cv2.boundingRect(cnt)
+            # Frasortér ikke-runde konturer (fx rektangulære LEGO-klodser)
+            if min_circ is not None or max_ar is not None:
+                perimeter = cv2.arcLength(cnt, True)
+                if perimeter == 0:
+                    continue
+                if min_circ is not None:
+                    circularity = 4 * math.pi * area / (perimeter * perimeter)
+                    if circularity < min_circ:
+                        continue
+                if max_ar is not None:
+                    if w == 0 or h_box == 0:
+                        continue
+                    if max(w / h_box, h_box / w) > max_ar:
+                        continue
             M = cv2.moments(cnt)
             if M["m00"] == 0:
                 continue
             cx = int(M["m10"] / M["m00"]) + ox
             cy = int(M["m01"] / M["m00"]) + oy
-            x, y, w, h_box = cv2.boundingRect(cnt)
             results.append(DetectionResult(
                 found=True, center=(cx, cy), area=area,
                 contour=cnt, mask=mask, bbox=(x + ox, y + oy, w, h_box),
@@ -133,6 +150,9 @@ class ColorDetector:
             _hsv = None  # force recompute on cropped frame
             offset = (rx, ry)
 
+        if frame is None or frame.size == 0:
+            return []
+
         hsv = _hsv if _hsv is not None else cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = self._build_mask(hsv, profile)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
@@ -164,6 +184,9 @@ class ColorDetector:
         y2 = min(y + margin, h_frame)
         w2 = max(w - 2 * margin, 0)
         h2 = max(h - 2 * margin, 0)
+        # Degenereret ROI (rammen mindre end 2*margin) er ubrugelig som bane
+        if w2 == 0 or h2 == 0:
+            return None
         return (x2, y2, w2, h2)
 
     def detect_all_colors(self, frame,
@@ -179,26 +202,6 @@ class ColorDetector:
                     for name in self.profiles}
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return {name: self.detect_all(frame, name, _hsv=hsv) for name in self.profiles}
-
-    def detect_balls(self, frame) -> list[Ball]:
-        """Detektér bolde inden for bane-ROI.
-
-        Finder automatisk ROI via den røde baneramme, og detekterer
-        derefter bolde (alle profiler undtagen 'roed') inden for ROI.
-
-        Returns:
-            Liste af Ball objekter.
-            Koordinater er i fuld-frame pixel-space.
-        """
-        roi = self.detect_field_roi(frame)
-
-        ball_profiles = {k: v for k, v in self.profiles.items() if k != "roed"}
-        balls = []
-        for name in ball_profiles:
-            results = self.detect_all(frame, name, roi=roi)
-            for r in results:
-                balls.append(Ball(name, r.center[0], r.center[1], name))
-        return balls
 
 
 def draw_detection(frame, result: DetectionResult,

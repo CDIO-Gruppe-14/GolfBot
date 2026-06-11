@@ -156,10 +156,10 @@ def main():
     while True:
         # Fase 1: Detekter bolde og forhindringer
         balls = detect_balls(ctx)
-        obstacals = detect_obstacals(ctx)
+        obstacles = detect_obstacles(ctx)
 
         # Fase 2: Lav rute (returnerer en standard deque)
-        queue = plan_route(ctx, balls, obstacals)
+        queue = plan_route(ctx, balls, obstacles)
 
         # Fase 3+4: Hent og opsaml bolde fra koeen
         while queue:

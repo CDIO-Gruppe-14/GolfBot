@@ -152,9 +152,9 @@ def plan_route(ctx, balls, obstacals):
 
     field_width, field_height = getattr(ctx.field_map, "field_size_cm", (180, 120))
     robot_start = Ball(
-        "robot",
         float(getattr(ctx.robot, "x", 0.0)),
         float(getattr(ctx.robot, "y", 0.0)),
+        "robot",
         "robot",
     )
 

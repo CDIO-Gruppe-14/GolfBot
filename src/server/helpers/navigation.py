@@ -33,14 +33,16 @@ def execute_turn(ctx, turn_angle):
 
     # Verificer heading med kamera
     time.sleep(0.3)
-    detect_robot(ctx)
-    if ctx.robot is not None:
+    if detect_robot(ctx):
         print("[{}] Heading verificeret med kamera: {:.1f} grader".format(
             ctx.iteration, ctx.robot.heading))
+    else:
+        print("[{}] ADVARSEL: Kunne ikke finde robot efter TURN!".format(
+            ctx.iteration))
     return True
 
 
-def execute_forward(ctx, distance, rx, ry):
+def execute_forward(ctx, distance):
     """Koer fremad og opdater heading fra kamera.
     Returnerer True ved succes, False ved fejl."""
     step = compute_forward_step(distance)
@@ -51,8 +53,7 @@ def execute_forward(ctx, distance, rx, ry):
     time.sleep(0.3)
 
     # Opdater heading med kamera
-    detect_robot(ctx)
-    if ctx.robot is not None:
+    if detect_robot(ctx):
         print("[{}] Heading fra markoer: {:.1f} grader".format(
             ctx.iteration, ctx.robot.heading))
     else:

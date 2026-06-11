@@ -85,6 +85,12 @@ CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 # Minimalt areal i pixels² for at en farvedetektion gælder
 COLOR_MIN_AREA = 40
 
+# Formfilter til bolddetektion — frasorterer ikke-runde konturer (fx LEGO-klodser).
+# Gælder som default for alle farveprofiler; en profil kan opte ud med null
+# (se color_profiles/roed.json, der detekterer den rektangulære bane-ramme).
+MIN_CIRCULARITY = 0.80        # 4π·areal/omkreds²: 1.0 = perfekt cirkel, firkant ≈ 0.785
+MAX_ASPECT_RATIO = 1.4        # max(bredde/højde, højde/bredde) — afviser aflange former
+
 # Sti til mappen med kalibrerede HSV-profiler (.json filer)
 # Brugt i: src/vision/hsv_utils.py  (linje 5)
 PROFILES_DIR = "color_profiles"
