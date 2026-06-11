@@ -189,10 +189,16 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
         # Sigt mod delmaalet hvis det ikke er det endelige maal
         # (turn_angle/distance til maalet er allerede beregnet oeverst).
+        # VIGTIGT: waypoints er MARKOER-CENTER-positioner (pathfinderen planlaegger
+        # centerets sti), saa de navigeres center-baseret (front_offset=0). Hvis vi
+        # styrede efter fronten (12 cm foran centret) ville centret aldrig naa
+        # waypointet, mens fronten satte sig oven paa det -> vild pejling og
+        # robotten roterer i ring. Front-offset bruges KUN til det endelige maal
+        # (bolden), saa opsamleren rammer den.
         if (sub_x, sub_y) != (target_x, target_y):
             turn_angle, distance = compute_turn_only(
                 ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
-                front_offset_cm=ROBOT_FRONT_OFFSET_CM)
+                front_offset_cm=0.0)
             print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}  Dist: {:.1f}".format(
                 ctx.iteration, sub_x, sub_y, turn_angle, distance))
 
