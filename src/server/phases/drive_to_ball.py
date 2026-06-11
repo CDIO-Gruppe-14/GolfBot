@@ -31,7 +31,8 @@ from src.server.phases.detection import detect_robot
 
 from config import (MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM,
                     PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_OFFSET_CM,
-                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM)
+                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM,
+                    WAYPOINT_REACHED_CM)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -96,6 +97,11 @@ def drive_to_ball(ctx, ball, obstacles=None):
     print("[KoerTilBold] Navigation mod {} bold paa ({:.1f}, {:.1f})".format(
         ball.color, target_x, target_y))
 
+    # Committed rute: den praecise A*-sti til maalet planlaegges EN gang og
+    # foelges waypoint for waypoint. None = endnu ikke planlagt (eller maal
+    # aendret -> planlaeg paa ny). [] = ingen sti fundet -> koer direkte.
+    route = None
+
     while True:
         ctx.iteration += 1
         time.sleep(0.2)
@@ -123,6 +129,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 print(f"[{ctx.iteration}] Approach point naaet! Skifter maal direkte mod bolden.")
                 approaching = False
                 target_x, target_y = ball.x, ball.y
+                route = None  # nyt maal -> planlaeg ruten paa ny
                 continue
                 
             if abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES:
@@ -141,14 +148,14 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 return True
             continue
 
-        # --- NORMAL NAVIGATION ---
-
-        # Forhindringskorrektion: er der fri sigtelinje til maalet, koeres direkte;
-        # ellers laegges ruten udenom det Roede Kryds via A*-waypoints. Stien
-        # genberegnes hver iteration ud fra robottens friske position
-        # (receding horizon), saa drift undervejs korrigeres loebende.
-        nav_x, nav_y = target_x, target_y
-        if obstacle_points:
+        # --- NORMAL NAVIGATION (path-following) ---
+        # Vi planlaegger den praecise A*-rute udenom forhindringerne EEN gang og
+        # foelger dens waypoints i raekkefoelge. Pathfinderen bestemmer altsaa
+        # KOERSELSRETNINGEN; kamera-feedback retter loebende kursen mod hvert
+        # waypoint. Ved at committe til eet waypoint ad gangen (i stedet for at
+        # genberegne "naeste hop" hver iteration) undgaar vi at robotten
+        # oscillerer foran en forhindring.
+        if obstacle_points and route is None:
             path = find_path(
                 (ctx.robot.x, ctx.robot.y), (target_x, target_y),
                 obstacle_points, field_w, field_h,
@@ -157,16 +164,34 @@ def drive_to_ball(ctx, ball, obstacles=None):
             if path is None:
                 print("[{}] ADVARSEL: Ingen fri sti til maalet -- koerer direkte".format(
                     ctx.iteration))
+                route = []  # ingen rute -> faldt tilbage til direkte koersel
             else:
-                nav_x, nav_y = path[0]
+                route = list(path)
+                print("[{}] Rute planlagt ({} waypoints): {}".format(
+                    ctx.iteration, len(route),
+                    " -> ".join("({:.0f},{:.0f})".format(x, y) for x, y in route)))
 
-        # Hvis vi maa udenom: sigt efter waypointet i stedet for det endelige maal.
-        if (nav_x, nav_y) != (target_x, target_y):
-            print("[{}] Forhindring i vejen -> waypoint ({:.1f}, {:.1f})".format(
-                ctx.iteration, nav_x, nav_y))
+        # Vaelg naeste delmaal = foerste ikke-naaede waypoint paa ruten.
+        # Sidste element er altid selve maalet, saa naar kun det er tilbage
+        # overtager stop/precision-logikken oeverst i loopet.
+        sub_x, sub_y = target_x, target_y
+        if route:
+            while len(route) > 1 and math.hypot(
+                    ctx.robot.x - route[0][0],
+                    ctx.robot.y - route[0][1]) <= WAYPOINT_REACHED_CM:
+                rx, ry = route.pop(0)
+                print("[{}] Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
+                    ctx.iteration, rx, ry, len(route)))
+            sub_x, sub_y = route[0]
+
+        # Sigt mod delmaalet hvis det ikke er det endelige maal
+        # (turn_angle/distance til maalet er allerede beregnet oeverst).
+        if (sub_x, sub_y) != (target_x, target_y):
             turn_angle, distance = compute_turn_only(
-                ctx.robot.x, ctx.robot.y, ctx.robot.heading, nav_x, nav_y,
+                ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
                 front_offset_cm=ROBOT_FRONT_OFFSET_CM)
+            print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}  Dist: {:.1f}".format(
+                ctx.iteration, sub_x, sub_y, turn_angle, distance))
 
         # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:
