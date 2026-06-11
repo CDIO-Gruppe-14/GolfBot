@@ -23,10 +23,7 @@ from src.server.helpers.navigation import (
 )
 from src.planning.command_generator import compute_turn_only
 
-from config import MIN_TURN_DEGREES, DELIVER_DISTANCE_CM
-
-# Afstand til waypoint hvor vi skifter til direkte maal-koersel (cm)
-WAYPOINT_REACHED_CM = 8.0
+from config import MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, WAYPOINT_REACHED_CM
 
 
 def drive_to_goal(ctx):

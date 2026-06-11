@@ -27,13 +27,7 @@ from src.planning.command_generator import compute_turn_only
 
 from src.server.phases.detection import detect_robot
 
-from config import MIN_TURN_DEGREES, APPROACH_DISTANCE_CM
-
-# Afstand (cm) hvor robotten stopper foran bolden.
-# Ret denne variabel for at justere, hvor taet robotten skal koere paa bolden.
-STOP_DISTANCE_CM = 2.0
-
-PRECISION_MIN_TURN_DEGREES = 5.0
+from config import MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM, PRECISION_MIN_TURN_DEGREES
 
 
 def drive_to_ball(ctx, ball):

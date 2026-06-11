@@ -127,6 +127,11 @@ FIELD_CORNERS_PX = [
 # ===========================================================================
 # Brugt i: src/planning/command_generator.py  (linje 30 og 34)
 
+# Mindste drejningsvinkel i grader (dead-zone).
+# Drejninger mindre end dette ignoreres for at undgaa oscillering.
+# Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
+MIN_TURN_DEGREES = 2.0
+
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
@@ -140,11 +145,24 @@ MAX_STEP_CM = 30.0
 # Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
 APPROACH_DISTANCE_CM = 15
 
+# Afstand (cm) hvor robotten stopper foran bolden og erklærer den "nået".
+# Brugt i: src/server/phases/drive_to_ball.py
+STOP_DISTANCE_CM = 2.0
+
+# Mindste drejningsvinkel i præcisions-zone (tæt på bold).
+# Højere end MIN_TURN_DEGREES fordi kamera-støj dominerer på kort afstand.
+# Brugt i: src/server/phases/drive_to_ball.py
+PRECISION_MIN_TURN_DEGREES = 5.0
+
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
 # ===========================================================================
 # Afstand til målet hvor robotten skal stoppe og spytte bolden ud (cm)
 DELIVER_DISTANCE_CM = 10
+
+# Afstand til waypoint hvor robotten skifter til direkte mål-kørsel (cm)
+# Brugt i: src/server/phases/drive_to_goal.py
+WAYPOINT_REACHED_CM = 8.0
 
 # Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
 # Målt i cm.
