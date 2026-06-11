@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.4"
+ROBOT_IP    = "172.20.10.12"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -71,7 +71,7 @@ GYRO_PORT = "2"
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -89,7 +89,6 @@ COLOR_MIN_AREA = 40
 # Brugt i: src/vision/hsv_utils.py  (linje 5)
 PROFILES_DIR = "color_profiles"
 
-# Hvilke farver der bruges til boldsøgning (rækkefølge = prioritet)
 # Brugt i: src/vision/ball_detector.py  (linje 15)
 BALL_COLORS = ["orange", "white"]
 
@@ -139,7 +138,7 @@ COLLECTOR_OFFSET_CM = 1
 
 # Afstand fra ArUco-markoerens center til robotfronten i cm.
 # Bruges til at omregne maaldistance fra markoer-reference til front-reference.
-ROBOT_FRONT_OFFSET_CM = 0.0
+ROBOT_FRONT_OFFSET_CM = 10.0
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
@@ -202,10 +201,8 @@ GOAL_B_MARKER_ID = 11
 # Sikkerhedsafstand (cm) omkring forhindringer. Bruges både til A* stifinding
 # og til at bestemme afstanden til vores "Approach Point" når en bold samles op.
 OBSTACLE_SAFE_RADIUS_CM = 20.0
-
 # Margin (pixels) for at ekskludere den røde bande fra banen, når forhindringer detekteres.
 FIELD_BORDER_MARGIN_PX = 50
-
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
 

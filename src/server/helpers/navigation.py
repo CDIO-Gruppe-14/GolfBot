@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 from src.server.helpers.command_utils import send_and_verify
 from src.planning.command_generator import compute_forward_step
+from src.server.phases.detection import detect_robot
 
 
 # calibrate_heading er fjernet - ArUco markør giver altid heading
@@ -32,12 +33,10 @@ def execute_turn(ctx, turn_angle):
 
     # Verificer heading med kamera
     time.sleep(0.3)
-    robot_after = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
-    if robot_after is not None:
-        _, _, dh = robot_after
-        ctx.estimated_heading = dh
+    detect_robot(ctx)
+    if ctx.robot is not None:
         print("[{}] Heading verificeret med kamera: {:.1f} grader".format(
-            ctx.iteration, ctx.estimated_heading))
+            ctx.iteration, ctx.robot.heading))
     return True
 
 
@@ -52,12 +51,10 @@ def execute_forward(ctx, distance, rx, ry):
     time.sleep(0.3)
 
     # Opdater heading med kamera
-    robot_after = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
-    if robot_after is not None:
-        new_rx, new_ry, dh = robot_after
-        ctx.estimated_heading = dh
+    detect_robot(ctx)
+    if ctx.robot is not None:
         print("[{}] Heading fra markoer: {:.1f} grader".format(
-            ctx.iteration, ctx.estimated_heading))
+            ctx.iteration, ctx.robot.heading))
     else:
         print("[{}] ADVARSEL: Kunne ikke finde robot efter FORWARD!".format(
             ctx.iteration))
