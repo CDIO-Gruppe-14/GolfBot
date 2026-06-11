@@ -22,8 +22,7 @@ from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
 from src.planning.command_generator import compute_turn_only
-
-from config import MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, WAYPOINT_REACHED_CM
+from config import MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_OFFSET_CM, WAYPOINT_REACHED_CM
 
 
 def drive_to_goal(ctx):
@@ -71,7 +70,8 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
         ctx.estimated_heading = direct_heading
 
         turn_angle, distance = compute_turn_only(
-            rx, ry, ctx.estimated_heading, target_x, target_y)
+            rx, ry, ctx.estimated_heading, target_x, target_y,
+            front_offset_cm=ROBOT_FRONT_OFFSET_CM)
 
         print("[{}] {} | Pos: ({:.1f},{:.1f}) -> ({:.1f},{:.1f}) "
               "Dist: {:.1f} Turn: {:.1f}".format(

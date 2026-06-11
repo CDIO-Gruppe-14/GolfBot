@@ -76,7 +76,32 @@ def detect_balls(ctx):
     return balls
 
 def detect_obstacals(ctx):
-    # Find forhindringer (forberedt til fremtidig implementering)
-    # TODO: Brug ObstacleDetector naar den er implementeret
+    from config import FIELD_BORDER_MARGIN_PX, OBSTACLE_MIN_AREA_PX
+    
+    frame = get_fresh_frame(ctx.camera)
+    if frame is None:
+        return []
+
+    color_detector = ctx.ball_detector.detector
+    
+    # 1. Find banens indre (ekskluderer den røde bande via margin)
+    roi = color_detector.detect_field_roi(frame, margin=FIELD_BORDER_MARGIN_PX) 
+    
     obstacles_cm = []
+    
+    # 2. Find det Røde Kryds inden for ROI
+    if "roed" in color_detector.profiles:
+        results = color_detector.detect_all(frame, "roed", roi=roi)
+        for r in results:
+            if r.found and r.center:
+                # Vi kan ignorere meget små 'røde' prikker (støj)
+                if r.area > OBSTACLE_MIN_AREA_PX: 
+                    ox, oy = ctx.field_map.pixel_to_cm(r.center[0], r.center[1])
+                    obstacles_cm.append((ox, oy))
+                
+    if obstacles_cm:
+        print(f"[Detektion] Fundet {len(obstacles_cm)} forhindring(er) (Rødt Kryds):")
+        for o in obstacles_cm:
+            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm")
+            
     return obstacles_cm

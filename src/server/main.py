@@ -148,7 +148,7 @@ def main():
                 ball = queue[0]
 
                 # Fase 3: Koer til bold
-                success = drive_to_ball(ctx, ball)
+                success = drive_to_ball(ctx, ball, obstacals)
                 if not success:
                     print("Koersel til bold fejlede. Springer over.")
                     queue.popleft()
