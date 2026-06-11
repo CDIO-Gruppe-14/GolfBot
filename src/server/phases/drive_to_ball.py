@@ -132,21 +132,19 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 route = None  # nyt maal -> planlaeg ruten paa ny
                 continue
                 
-            if abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES:
-                # Verificer vinklen med et FRISK billede foer vi godkender at vi
-                # staar overfor bolden -- TURN-kommandoen kan have ramt forkert.
-                ok, fresh_turn, _ = _verify_facing_ball(ctx, target_x, target_y)
-                if ok:
-                    print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
-                        ctx.iteration, distance))
-                    return True
-                print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
-                    ctx.iteration, fresh_turn if fresh_turn is not None else 0.0))
-                if fresh_turn is not None and not execute_turn(ctx, fresh_turn):
-                    return False
-                continue
-
-            if not execute_turn(ctx, turn_angle):
+            # Endelig vinkel-verifikation med et FRISK billede (center-baseret)
+            # foer vi godkender at vi staar overfor bolden -- TURN er upraecis,
+            # saa vi stoler ikke blindt paa at den forrige drejning ramte.
+            ok, fresh_turn, _ = _verify_facing_ball(ctx, target_x, target_y)
+            if ok:
+                print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
+                    ctx.iteration, distance))
+                return True
+            if fresh_turn is None:
+                continue  # kamerafejl -- tag nyt billede
+            print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
+                ctx.iteration, fresh_turn))
+            if not execute_turn(ctx, fresh_turn):
                 return False
             continue
 
@@ -234,7 +232,18 @@ def _verify_facing_ball(ctx, target_x, target_y):
     """
     if not detect_robot(ctx):
         return False, None, None
-    turn_angle, distance = compute_turn_only(
+    # VINKEL: center-baseret. Bolden skal ligge paa robottens koerselsakse
+    # (linjen gennem center og front langs heading), saa den glider ind i
+    # opsamleren naar vi koerer ligeud. Front-baseret vinkel er daarligt
+    # konditioneret naar bolden er ~ROBOT_FRONT_OFFSET_CM vaek (front ~oven paa
+    # bolden): smaa heading-fejl giver store udsving -> robotten retter for
+    # meget og rammer skaevt. (Maalet rammes praecist fordi det tilnaermes paa
+    # lang afstand, hvor front-offset er ubetydelig.)
+    turn_angle, _ = compute_turn_only(
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
+        front_offset_cm=0.0)
+    # AFSTAND: fra fronten, saa STOP_DISTANCE_CM gaelder opsamleren, ikke centret.
+    _, distance = compute_turn_only(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
         front_offset_cm=ROBOT_FRONT_OFFSET_CM)
     return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle, distance
@@ -244,8 +253,14 @@ def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
     """Praecisions-tilnaermelse naar robotten er taet paa bolden.
     Returnerer True hvis bolden er naaet, False for at tage nyt billede."""
     # Fase A: Ret vinkel -- men KUN hvis den er markant forkert.
-    # Paa kort afstand giver kamera-stoej store vinkelfejl,
-    # saa vi bruger en hoejere threshold end normal navigation.
+    # Vinklen beregnes CENTER-baseret (front_offset=0), saa bolden lander paa
+    # robottens koerselsakse. Front-baseret finjustering paa kort afstand er
+    # daarligt konditioneret og faar robotten til at ramme skaevt (se
+    # _verify_facing_ball). Paa kort afstand giver kamera-stoej store
+    # vinkelfejl, saa vi bruger en hoejere threshold end normal navigation.
+    turn_angle, _ = compute_turn_only(
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
+        front_offset_cm=0.0)
     if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:
