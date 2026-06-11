@@ -17,10 +17,10 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-from src.server.helpers.camera_utils import find_robot
 from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
+from src.server.phases.detection import detect_robot
 from src.planning.command_generator import compute_turn_only
 from config import MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_OFFSET_CM, WAYPOINT_REACHED_CM
 
@@ -60,22 +60,19 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
         ctx.iteration += 1
         time.sleep(0.2)
 
-        robot_result = find_robot(ctx.camera, ctx.tracker, ctx.field_map)
-        if robot_result is None:
+        detect_robot(ctx)
+        if ctx.robot is None:
             print("[{}] Kan ikke finde robot under {} ...".format(
                 ctx.iteration, label))
             continue
 
-        rx, ry, direct_heading = robot_result
-        ctx.estimated_heading = direct_heading
-
         turn_angle, distance = compute_turn_only(
-            rx, ry, ctx.estimated_heading, target_x, target_y,
+            ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
             front_offset_cm=ROBOT_FRONT_OFFSET_CM)
 
         print("[{}] {} | Pos: ({:.1f},{:.1f}) -> ({:.1f},{:.1f}) "
               "Dist: {:.1f} Turn: {:.1f}".format(
-                  ctx.iteration, label, rx, ry, target_x, target_y,
+                  ctx.iteration, label, ctx.robot.x, ctx.robot.y, target_x, target_y,
                   distance, turn_angle))
 
         # Maal naaet? Stop uden at dreje -- robotten er allerede rettet
@@ -91,4 +88,4 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label):
             continue
 
         # Fremad
-        execute_forward(ctx, distance, rx, ry)
+        execute_forward(ctx, distance, ctx.robot.x, ctx.robot.y)

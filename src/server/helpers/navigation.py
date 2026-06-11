@@ -16,7 +16,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
-from src.server.helpers.camera_utils import find_robot
 from src.server.helpers.command_utils import send_and_verify
 from src.planning.command_generator import compute_forward_step
 
