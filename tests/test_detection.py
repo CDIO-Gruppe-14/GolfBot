@@ -32,12 +32,13 @@ class TestPhase1Detection(unittest.TestCase):
             if not loaded_profiles:
                 self.fail("Ingen farveprofiler blev indlæst fra color_profiles/. Kør kalibrering først.")
 
+            field_map = FieldMap(aruco_detector=aruco_detector)
             ctx = SimpleNamespace(
                 camera=camera,
                 tracker=RobotTracker(aruco_detector),
-                ball_detector=BallDetector(detector),
-                obstacle_detector=ObstacleDetector(detector),
-                field_map=FieldMap(),
+                ball_detector=BallDetector(detector, field_map),
+                obstacle_detector=ObstacleDetector(detector, field_map),
+                field_map=field_map,
                 estimated_heading=None,
                 robot = Robot()
             )

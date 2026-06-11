@@ -60,11 +60,12 @@ def setup():
     detector = ColorDetector()
     loaded = detector.load_all_profiles()
     print("Indlaedte farveprofiler: {}".format(loaded))
-    ball_det = BallDetector(detector)
-    obstacle_det = ObstacleDetector(detector)
 
-    # Banekalibrering via ArUco
+    # Banekalibrering via ArUco (definerer ROI for bold-/forhindringsdetektion)
     field_map = FieldMap(aruco_detector=aruco)
+    ball_det = BallDetector(detector, field_map)
+    obstacle_det = ObstacleDetector(detector, field_map)
+
     client = PCClient(ROBOT_IP)
     
     print("Forbinder til EV3...")

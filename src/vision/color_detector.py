@@ -131,20 +131,35 @@ class ColorDetector:
         return max(results, key=lambda r: r.area)
 
     def detect_all(self, frame, profile_name: str, _hsv=None,
-                   roi: tuple | None = None) -> list[DetectionResult]:
+                   roi: tuple | None = None,
+                   roi_polygon: list | None = None) -> list[DetectionResult]:
         """Returnér alle detektioner for én farve (sorteret størst først).
 
         Args:
             roi: (x, y, w, h) — begræns detektion til dette rektangel.
                  Returnerede koordinater er i fuld-frame-space.
+            roi_polygon: liste af hjørnepunkter (fx de 4 Aruco-banehjørner) —
+                 begræns detektion til pixels INDE i polygonet. Croppes til
+                 polygonets bounding box og maskeres med selve polygonet, så
+                 fx den røde bande udenfor udelukkes. Tager forrang over 'roi'.
         """
         if profile_name not in self.profiles:
             raise ValueError(f"Profil '{profile_name}' ikke indlæst — kald load_profile() først.")
 
         profile = self.profiles[profile_name]
         offset = (0, 0)
+        poly_mask = None
 
-        if roi is not None:
+        if roi_polygon:
+            pts = np.array(roi_polygon, dtype=np.int32)
+            rx, ry, rw, rh = cv2.boundingRect(pts)
+            frame = frame[ry:ry+rh, rx:rx+rw]
+            _hsv = None  # force recompute on cropped frame
+            offset = (rx, ry)
+            # Polygon-maske i crop-koordinater (udelukker alt udenfor banen)
+            poly_mask = np.zeros((rh, rw), dtype=np.uint8)
+            cv2.fillConvexPoly(poly_mask, pts - (rx, ry), 255)
+        elif roi is not None:
             rx, ry, rw, rh = roi
             frame = frame[ry:ry+rh, rx:rx+rw]
             _hsv = None  # force recompute on cropped frame
@@ -155,39 +170,13 @@ class ColorDetector:
 
         hsv = _hsv if _hsv is not None else cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = self._build_mask(hsv, profile)
+        if poly_mask is not None:
+            mask = cv2.bitwise_and(mask, poly_mask)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                         cv2.CHAIN_APPROX_SIMPLE)
         results = self._contours_to_results(contours, mask, profile=profile, offset=offset)
         results.sort(key=lambda r: r.area, reverse=True)
         return results
-
-    def detect_field_roi(self, frame, margin: int = 100) -> tuple | None:
-        """Detektér den røde baneramme og returnér indre bounding box som ROI.
-
-        Krymper ROI indad med 'margin' pixels for at ekskludere selve rammen.
-
-        Returns:
-            (x, y, w, h) for banens indre areal, eller None.
-        """
-        if "roed" not in self.profiles:
-            if not self.load_profile("roed"):
-                return None
-
-        results = self.detect_all(frame, "roed")
-        if not results:
-            return None
-
-        x, y, w, h = results[0].bbox
-        # Krymp indad for at ekskludere den røde ramme
-        h_frame, w_frame = frame.shape[:2]
-        x2 = min(x + margin, w_frame)
-        y2 = min(y + margin, h_frame)
-        w2 = max(w - 2 * margin, 0)
-        h2 = max(h - 2 * margin, 0)
-        # Degenereret ROI (rammen mindre end 2*margin) er ubrugelig som bane
-        if w2 == 0 or h2 == 0:
-            return None
-        return (x2, y2, w2, h2)
 
     def detect_all_colors(self, frame,
                           roi: tuple | None = None) -> dict[str, list[DetectionResult]]:
@@ -348,29 +337,29 @@ if __name__ == "__main__":
                 cv2.putText(annotated, label, (int(center[0]) - 30, int(center[1]) - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-            # 3. Tegn ROI (rød baneramme) hvis fundet via farvedetektion
-            roi = detector.detect_field_roi(frame)
-            if roi is not None:
-                rx, ry, rw, rh = roi
-                cv2.rectangle(annotated, (rx, ry), (rx + rw, ry + rh), (0, 255, 255), 2)
-                cv2.putText(annotated, "ROI", (rx + 5, ry + 25),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            # 3. Vælg banens ROI-polygon (Aruco live → memory → gemt → config-fallback)
+            if found_all_live:
+                roi_polygon = live_corners
+            elif last_live_corners is not None:
+                roi_polygon = last_live_corners
+            elif corners_loaded and len(corners_loaded) == 4:
+                roi_polygon = corners_loaded
+            else:
+                roi_polygon = FIELD_CORNERS_PX
 
-            # 4. Detektér bolde inden for ROI
+            # 4. Detektér bolde inden for ROI (Aruco-firkanten)
             ball_profiles = {k: v for k, v in detector.profiles.items() if k != "roed"}
             for i, name in enumerate(ball_profiles):
                 draw_color = DRAW_COLORS[i % len(DRAW_COLORS)]
-                results = detector.detect_all(frame, name, roi=roi)
+                results = detector.detect_all(frame, name, roi_polygon=roi_polygon)
                 for r in results:
                     annotated = draw_detection(annotated, r, label=name, color=draw_color)
                     print(f"  {name}: center={r.center}  areal={r.area:.0f}px²")
 
                 # Debug: vis maske for hvid
                 if name == "hvid":
-                    crop = frame
-                    if roi is not None:
-                        rx, ry, rw, rh = roi
-                        crop = frame[ry:ry+rh, rx:rx+rw]
+                    rx, ry, rw, rh = cv2.boundingRect(np.array(roi_polygon, dtype=np.int32))
+                    crop = frame[ry:ry+rh, rx:rx+rw]
                     hsv_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
                     mask = detector._build_mask(hsv_crop, detector.profiles["hvid"])
                     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,

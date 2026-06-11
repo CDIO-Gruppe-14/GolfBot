@@ -207,7 +207,8 @@ GOAL_B_MARKER_ID = 11
 # Sikkerhedsafstand (cm) omkring forhindringer. Bruges både til A* stifinding
 # og til at bestemme afstanden til vores "Approach Point" når en bold samles op.
 OBSTACLE_SAFE_RADIUS_CM = 20.0
-# Margin (pixels) for at ekskludere den røde bande fra banen, når forhindringer detekteres.
+# Margin (pixels) som ROI'en krympes indad fra Aruco-banehjørnerne — lille
+# sikkerhedsmargin der holder detektion klar af den røde bande.
 FIELD_BORDER_MARGIN_PX = 50
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150

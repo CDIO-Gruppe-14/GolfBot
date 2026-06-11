@@ -19,8 +19,9 @@ class BallPosition:
 class BallDetector:
     BALL_COLORS = BALL_COLORS  # defineret i config.py
 
-    def __init__(self, color_detector, border_margin=FIELD_BORDER_MARGIN_PX):
+    def __init__(self, color_detector, field_map, border_margin=FIELD_BORDER_MARGIN_PX):
         self.detector = color_detector
+        self.field_map = field_map
         self.border_margin = border_margin
 
     def find_nearest_ball(self, frame, robot_pos=None) -> Optional[BallPosition]:
@@ -39,17 +40,15 @@ class BallDetector:
 
     def find_all_balls(self, frame) -> list[BallPosition]:
         """Finder alle bolde med farve-label (orange/hvid) inden for bane-ROI."""
-        # Begræns detektion til banens indre (ekskluderer den røde bande)
-        roi = self.detector.detect_field_roi(frame, margin=self.border_margin)
-        if roi is None:
-            print("  [BallDetector] ADVARSEL: Bane-ROI ikke fundet — søger i hele billedet")
+        # Begræns detektion til banens indre (Aruco-hjørner, ekskluderer den røde bande)
+        polygon = self.field_map.field_polygon(margin_px=self.border_margin)
 
         balls = []
 
         for color in self.BALL_COLORS:
             if color not in self.detector.profiles:
                 continue
-            for r in self.detector.detect_all(frame, color, roi=roi):
+            for r in self.detector.detect_all(frame, color, roi_polygon=polygon):
                 if r.found and r.center is not None:
                     balls.append(BallPosition(
                         x=r.center[0],

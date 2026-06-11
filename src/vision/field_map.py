@@ -36,6 +36,25 @@ class FieldMap:
         self.corners = field_corners_px
         self.M = self._compute_transform(field_corners_px, field_size_cm)
         
+    def field_polygon(self, margin_px: int = 0) -> list[tuple[float, float]]:
+        """De 4 banehjørner (Aruco) som polygon, evt. krympet 'margin_px' indad mod centrum.
+
+        Bruges som ROI til bold- og forhindringsdetektion, så detektion begrænses til
+        banens indre (defineret af Aruco-markørerne) og den røde bande udelukkes.
+        """
+        if not self.corners:
+            return []
+        if margin_px <= 0:
+            return [tuple(c) for c in self.corners]
+        cx = sum(c[0] for c in self.corners) / len(self.corners)
+        cy = sum(c[1] for c in self.corners) / len(self.corners)
+        shrunk = []
+        for x, y in self.corners:
+            dx, dy = cx - x, cy - y
+            dist = (dx * dx + dy * dy) ** 0.5 or 1.0
+            shrunk.append((x + dx / dist * margin_px, y + dy / dist * margin_px))
+        return shrunk
+
     def calibrate_from_aruco(self, frame) -> bool:
         """Find 4 hjørne-markører og beregn perspektiv-transformation."""
         if not self.aruco:
