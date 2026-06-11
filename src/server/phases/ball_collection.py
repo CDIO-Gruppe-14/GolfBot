@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 from src.server.helpers.command_utils import send_and_verify
 from src.entities.ball import Ball
+from config import COLLECTOR_OFFSET_CM
 
 
 def collect_ball(ctx, ball):
@@ -41,7 +42,7 @@ def collect_ball(ctx, ball):
     send_and_verify(ctx.client, "COLLECT_START")
 
     print("[{}] [Opsamling] Koerer roligt frem over bolden...".format(ctx.iteration))
-    send_and_verify(ctx.client, "FORWARD", 5.0)
+    send_and_verify(ctx.client, "FORWARD", COLLECTOR_OFFSET_CM )
     time.sleep(3.0)
     send_and_verify(ctx.client, "COLLECT_STOP")
     send_and_verify(ctx.client, "FORWARD", -5.0)

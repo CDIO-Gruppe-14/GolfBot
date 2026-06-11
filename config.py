@@ -104,7 +104,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -173,7 +173,7 @@ MIN_TURN_DEGREES = 2.0
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_OFFSET_CM = 1
+COLLECTOR_OFFSET_CM = 10
 
 # Afstand fra ArUco-markoerens center til robotfronten i cm.
 # Bruges til at omregne maaldistance fra markoer-reference til front-reference.
@@ -190,7 +190,7 @@ APPROACH_DISTANCE_CM = 15
 
 # Afstand (cm) hvor robotten stopper foran bolden og erklærer den "nået".
 # Brugt i: src/server/phases/drive_to_ball.py
-STOP_DISTANCE_CM = 2.0
+STOP_DISTANCE_CM = 4.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Højere end MIN_TURN_DEGREES fordi kamera-støj dominerer på kort afstand.

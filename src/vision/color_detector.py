@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 roi_polygon = FIELD_CORNERS_PX
 
             # 4. Detektér bolde inden for ROI (Aruco-firkanten)
-            ball_profiles = {k: v for k, v in detector.profiles.items() if k != "roed"}
+            ball_profiles = detector.profiles.keys()
             for i, name in enumerate(ball_profiles):
                 draw_color = DRAW_COLORS[i % len(DRAW_COLORS)]
                 results = detector.detect_all(frame, name, roi_polygon=roi_polygon)
@@ -364,9 +364,17 @@ if __name__ == "__main__":
                     mask = detector._build_mask(hsv_crop, detector.profiles["hvid"])
                     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                                     cv2.CHAIN_APPROX_SIMPLE)
-                    print(f"  [DEBUG hvid] konturer: {len(contours)}, "
-                          f"arealer: {[int(cv2.contourArea(c)) for c in contours[:10]]}")
+                    # print(f"  [DEBUG hvid] konturer: {len(contours)}, arealer: {[int(cv2.contourArea(c)) for c in contours[:10]]}")
                     cv2.imshow("Hvid Maske", mask)
+
+                if name == "roed":
+                    rx, ry, rw, rh = cv2.boundingRect(np.array(roi_polygon, dtype=np.int32))
+                    crop = frame[ry:ry+rh, rx:rx+rw]
+                    hsv_crop = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+                    mask = detector._build_mask(hsv_crop, detector.profiles["roed"])
+                    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    cv2.imshow("Roed Maske (Forhindring)", mask)
+                    print(f"  [DEBUG roed] fandt {len(contours)} konturer. Arealer: {[int(cv2.contourArea(c)) for c in contours[:5]]}")
 
             cv2.imshow("ColorDetector", annotated)
             if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -1,18 +1,20 @@
 {
   "name": "orange",
   "h": 13,
-  "s": 203,
-  "v": 250,
-  "h_tol": 8,
+  "s": 195,
+  "v": 244,
+  "h_tol": 7,
   "s_tol": 60,
-  "v_tol": 17,
+  "v_tol": 45,
+  "min_circularity": 0.5, 
+  "max_aspect_ratio": 1.5,  
   "lower": [
-    5,
-    143,
-    233
+    6,
+    135,
+    199
   ],
   "upper": [
-    21,
+    20,
     255,
     255
   ]

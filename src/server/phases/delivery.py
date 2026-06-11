@@ -37,7 +37,7 @@ def deliver_balls(ctx):
     # Vent paa at boldene triller ud
     print("[{}] [Aflevering] Venter 3 sekunder paa at boldene triller ud...".format(
         ctx.iteration))
-    time.sleep(3.0)
+    time.sleep(5.0)
 
     # Bak vaek fra maalet
     print("[{}] [Aflevering] Bakker 10 cm vaek fra maalet...".format(ctx.iteration))
