@@ -26,19 +26,3 @@ def extract_heading(robot, field_map):
     fx, fy = field_map.pixel_to_cm(robot.x, robot.y)
     tx, ty = field_map.pixel_to_cm(robot.x + dx * 50, robot.y + dy * 50)
     return math.degrees(math.atan2(ty - fy, tx - fx))
-
-
-def find_robot(camera, tracker, field_map):
-    """Tag nyt billede og find robot.
-    Altid returnerer (rx, ry, heading) — heading er aldrig None."""
-    frame = get_fresh_frame(camera)
-    if frame is None:
-        return None
-
-    robot = tracker.locate(frame)
-    if robot is None:
-        return None
-
-    rx, ry = field_map.pixel_to_cm(robot.x, robot.y)
-    heading = extract_heading(robot, field_map)
-    return (rx, ry, heading)

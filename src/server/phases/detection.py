@@ -4,9 +4,6 @@ GolfBot -- Fase 1 + 7: Detektion
 Finder alle bolde, robot og forhindringer via kamera.
 Gemmer positioner i cm-koordinater.
 
-Her udfores kalibrering og der laves et billede af
-hvor boldene ligger i koordinatsystemet.
-
 Bruges baade som foerste fase (find alt) og som
 fase 7 (tjek om der er flere bolde).
 """
@@ -47,10 +44,7 @@ def detect_robot(ctx):
         return None
 
     ctx.robot.x, ctx.robot.y = ctx.field_map.pixel_to_cm(robot.x, robot.y)
-    heading = extract_heading(robot, ctx.field_map)
-
-    # Opdater heading i context
-    ctx.robot.heading = heading
+    ctx.robot.heading = extract_heading(robot, ctx.field_map)
     
     print(f"[Detection] {ctx.robot}")
 
