@@ -24,7 +24,7 @@ from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
 from src.planning.command_generator import compute_turn_only
-from src.planning.pathfinder import find_path
+from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
 
 from src.server.phases.detection import detect_robot
@@ -156,20 +156,23 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # genberegne "naeste hop" hver iteration) undgaar vi at robotten
         # oscillerer foran en forhindring.
         if obstacle_points and route is None:
-            path = find_path(
+            path, used_safe = find_path_adaptive(
                 (ctx.robot.x, ctx.robot.y), (target_x, target_y),
                 obstacle_points, field_w, field_h,
                 safe_radius=OBSTACLE_SAFE_RADIUS_CM,
                 robot_radius=ROBOT_RADIUS_CM)
             if path is None:
-                print("[{}] ADVARSEL: Ingen fri sti til maalet -- koerer direkte".format(
-                    ctx.iteration))
-                route = []  # ingen rute -> faldt tilbage til direkte koersel
-            else:
-                route = list(path)
-                print("[{}] Rute planlagt ({} waypoints): {}".format(
-                    ctx.iteration, len(route),
-                    " -> ".join("({:.0f},{:.0f})".format(x, y) for x, y in route)))
+                # Bolden er reelt indespaerret af forhindringer. Vi koerer IKKE
+                # direkte ind i krydset -- springer bolden over i stedet.
+                print("[{}] INGEN sikker sti til bolden -- springer den over"
+                      " (undgaar at ramme forhindringen)".format(ctx.iteration))
+                return False
+            route = list(path)
+            extra = "" if used_safe >= OBSTACLE_SAFE_RADIUS_CM else \
+                "  [reduceret buffer={:.0f} cm pga. traang bane]".format(used_safe)
+            print("[{}] Rute planlagt ({} waypoints){}: {}".format(
+                ctx.iteration, len(route), extra,
+                " -> ".join("({:.0f},{:.0f})".format(x, y) for x, y in route)))
 
         # Vaelg naeste delmaal = foerste ikke-naaede waypoint paa ruten.
         # Sidste element er altid selve maalet, saa naar kun det er tilbage

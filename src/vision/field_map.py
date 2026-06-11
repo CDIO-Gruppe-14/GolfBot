@@ -107,3 +107,11 @@ class FieldMap:
         pt = np.float32([[[px, py]]])
         result = cv2.perspectiveTransform(pt, self.M)
         return float(result[0][0][0]), float(result[0][0][1])
+
+    def cm_to_pixel(self, x_cm, y_cm) -> tuple[float, float]:
+        """Konverterer cm-koordinat tilbage til pixel (invers af pixel_to_cm).
+        Bruges til at tegne cm-baserede ruter oven paa kamerabilledet."""
+        Minv = np.linalg.inv(self.M)
+        pt = np.float32([[[x_cm, y_cm]]])
+        result = cv2.perspectiveTransform(pt, Minv)
+        return float(result[0][0][0]), float(result[0][0][1])

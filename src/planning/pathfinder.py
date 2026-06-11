@@ -176,3 +176,28 @@ def find_path(start: Point, goal: Point,
     else:
         waypoints = [(float(goal[0]), float(goal[1]))]
     return waypoints
+
+
+def find_path_adaptive(start: Point, goal: Point,
+                       obstacles: Sequence[Point],
+                       max_x: float, max_y: float,
+                       safe_radius: float,
+                       robot_radius: float = 0.0):
+    """find_path med automatisk nedtrapning af den strategiske buffer hvis banen
+    er for traang til den fulde clearance.
+
+    robot_radius beholdes ALTID (robotkroppen undgaar fysisk forhindringen);
+    kun safe_radius trappes ned (1.0 -> 0.5 -> 0.0 af den). Det forhindrer at en
+    stor robot paa en lille bane goer alle bolde "uopnaaelige" -- mens kroppen
+    stadig holdes fri.
+
+    Returnerer (path, used_safe_radius). Hvis selv 0-buffer ikke giver en sti
+    (bolden er reelt indespaerret), returneres (None, None) -- saa kalderen kan
+    springe bolden over i stedet for at koere ind i forhindringen.
+    """
+    for factor in (1.0, 0.5, 0.0):
+        safe = safe_radius * factor
+        path = find_path(start, goal, obstacles, max_x, max_y, safe, robot_radius)
+        if path is not None:
+            return path, safe
+    return None, None
