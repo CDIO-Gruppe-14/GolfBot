@@ -1,20 +1,5 @@
 """
-GolfBot -- Boldstrategi
-========================
-Bestemmer raekkefoelgen af bolde baseret paa regler og scoring.
 
-STATUS: Stub med interface -- klar til implementering.
-
-Regler:
-  - 11 bolde i alt (1 orange VIP-bold, 10 hvide)
-  - Orange bold giver 200 bonuspoint HVIS den afleveres først
-  - Maal A (lille, 80mm): 150 point/bold
-  - Maal B (stort, 200mm): 100 point/bold
-  - 8 minutter til indsamling
-  - -50 point per beroering af bane/forhindring
-
-Afhaenger af:
-  - src/vision/ball_detector.py (BallPosition)
 """
 
 import math

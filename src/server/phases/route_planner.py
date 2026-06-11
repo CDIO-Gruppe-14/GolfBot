@@ -159,13 +159,23 @@ def plan_route(ctx, balls, obstacals):
     )
 
     obstacles = _normalize_obstacles(obstacals)
+
+    # Orange er VIP-bolden: 200 bonuspoint HVIS den afleveres foerst.
+    # Robotten holder bolde efter LIFO -> orange skal samles SIDST, saa den
+    # ligger oeverst i magasinet og afleveres foerst. Derfor optimeres KUN de
+    # hvide boldes raekkefoelge; orange append'es til sidst.
+    orange_balls = [b for b in balls if b.color == "orange"]
+    white_balls = [b for b in balls if b.color != "orange"]
+
     sorted_balls = optimize_robot_route(
         robot_start,
-        list(balls),
+        white_balls,
         obstacles,
         int(field_width),
         int(field_height),
     )
+    for orange in orange_balls:
+        sorted_balls.append(orange)
 
     print("[Ruteplaner] Planlagt raekkefoelge for {} bolde:".format(len(sorted_balls)))
     for i, ball in enumerate(sorted_balls):

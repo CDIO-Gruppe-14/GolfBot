@@ -24,10 +24,14 @@ from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
 from src.planning.command_generator import compute_turn_only
+from src.planning.pathfinder import find_path
+from src.server.phases.route_planner import _normalize_obstacles
 
 from src.server.phases.detection import detect_robot
 
-from config import MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM, PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_OFFSET_CM, OBSTACLE_SAFE_RADIUS_CM
+from config import (MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM,
+                    PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_OFFSET_CM,
+                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -52,17 +56,20 @@ def drive_to_ball(ctx, ball, obstacles=None):
     target_x, target_y = ball.x, ball.y
     approaching = False
 
-    if obstacles:
+    # Normaliser forhindringer til (x, y)-cm-punkter eet sted -- bruges baade til
+    # approach-punkt-beregningen og til A*-pathfinding under koerslen.
+    obstacle_points = _normalize_obstacles(obstacles)
+    field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120))
+
+    if obstacle_points:
         closest_obs = None
         min_dist = float('inf')
-        for obs in obstacles:
-            ox = getattr(obs, "x", obs[0]) if not isinstance(obs, tuple) else obs[0]
-            oy = getattr(obs, "y", obs[1]) if not isinstance(obs, tuple) else obs[1]
+        for ox, oy in obstacle_points:
             dist = math.hypot(ball.x - ox, ball.y - oy)
             if dist < min_dist:
                 min_dist = dist
                 closest_obs = (ox, oy)
-                
+
         # Hvis bolden er inden for sikkerhedszonen af en forhindring
         if closest_obs and min_dist <= OBSTACLE_SAFE_RADIUS_CM:
             from src.planning.command_generator import calculate_approach_point
@@ -70,6 +77,20 @@ def drive_to_ball(ctx, ball, obstacles=None):
             target_x, target_y = app_x, app_y
             approaching = True
             print(f"\n[KoerTilBold] BOLD TAET PAA FORHINDRING! Koerer til Approach Point ({app_x:.1f}, {app_y:.1f})")
+
+    # Bold taet paa banden? Angrib vinkelret indefra via approach-punkt langs
+    # vaegnormalen, saa robotten ikke koerer ind i banden under opsamling (#3).
+    # Banderne er kendt fra ArUco-banen (cm-koords 0..field_w / 0..field_h).
+    if not approaching:
+        from src.planning.command_generator import calculate_wall_approach_point
+        wall_app = calculate_wall_approach_point(
+            ball.x, ball.y, field_w, field_h,
+            wall_safe_dist_cm=WALL_SAFE_RADIUS_CM,
+            approach_dist_cm=WALL_SAFE_RADIUS_CM)
+        if wall_app is not None:
+            target_x, target_y = wall_app
+            approaching = True
+            print(f"\n[KoerTilBold] BOLD TAET PAA BANDEN! Koerer til Approach Point ({target_x:.1f}, {target_y:.1f})")
 
     print("\n" + "=" * 60)
     print("[KoerTilBold] Navigation mod {} bold paa ({:.1f}, {:.1f})".format(
@@ -122,12 +143,30 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
         # --- NORMAL NAVIGATION ---
 
-        # TODO: Forhindringskorrektion kan tilfojes her:
-        #   from src.planning.pathfinder import AStarPathfinder
-        #   pathfinder = AStarPathfinder()
-        #   waypoints = pathfinder.find_path(
-        #       (rx, ry), (target_x, target_y), ctx_obstacles)
-        #   Brug foerste waypoint som midlertidigt maal
+        # Forhindringskorrektion: er der fri sigtelinje til maalet, koeres direkte;
+        # ellers laegges ruten udenom det Roede Kryds via A*-waypoints. Stien
+        # genberegnes hver iteration ud fra robottens friske position
+        # (receding horizon), saa drift undervejs korrigeres loebende.
+        nav_x, nav_y = target_x, target_y
+        if obstacle_points:
+            path = find_path(
+                (ctx.robot.x, ctx.robot.y), (target_x, target_y),
+                obstacle_points, field_w, field_h,
+                safe_radius=OBSTACLE_SAFE_RADIUS_CM,
+                robot_radius=ROBOT_RADIUS_CM)
+            if path is None:
+                print("[{}] ADVARSEL: Ingen fri sti til maalet -- koerer direkte".format(
+                    ctx.iteration))
+            else:
+                nav_x, nav_y = path[0]
+
+        # Hvis vi maa udenom: sigt efter waypointet i stedet for det endelige maal.
+        if (nav_x, nav_y) != (target_x, target_y):
+            print("[{}] Forhindring i vejen -> waypoint ({:.1f}, {:.1f})".format(
+                ctx.iteration, nav_x, nav_y))
+            turn_angle, distance = compute_turn_only(
+                ctx.robot.x, ctx.robot.y, ctx.robot.heading, nav_x, nav_y,
+                front_offset_cm=ROBOT_FRONT_OFFSET_CM)
 
         # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:

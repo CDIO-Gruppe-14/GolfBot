@@ -99,5 +99,41 @@ def calculate_approach_point(ball_x, ball_y, obstacle_x, obstacle_y, approach_di
     
     approach_x = ball_x + (dir_x * approach_dist_cm)
     approach_y = ball_y + (dir_y * approach_dist_cm)
-    
+
+    return round(approach_x, 1), round(approach_y, 1)
+
+
+def calculate_wall_approach_point(ball_x, ball_y, field_w, field_h,
+                                  wall_safe_dist_cm, approach_dist_cm):
+    """
+    Approach-punkt for en bold taet paa banden (vaeggen).
+
+    Banderne ligger paa kendte cm-koordinater (ArUco-banen mapper hjoernerne til
+    0..field_w / 0..field_h). Hvis bolden er inden for wall_safe_dist_cm af en vaeg,
+    beregnes et punkt paa den INDRE side af bolden langs vaegnormalen (mod banens
+    midte), saa robotten angriber bolden vinkelret indefra og ikke koerer ind i banden.
+
+    Hjoerne-bolde (taet paa to vaegge) faar en diagonal normal.
+
+    Returnerer (x, y) eller None hvis bolden ikke er taet nok paa nogen vaeg.
+    """
+    nx = 0.0
+    ny = 0.0
+    if ball_x < wall_safe_dist_cm:
+        nx += 1.0
+    elif ball_x > field_w - wall_safe_dist_cm:
+        nx -= 1.0
+    if ball_y < wall_safe_dist_cm:
+        ny += 1.0
+    elif ball_y > field_h - wall_safe_dist_cm:
+        ny -= 1.0
+
+    if nx == 0.0 and ny == 0.0:
+        return None
+
+    length = math.hypot(nx, ny)
+    nx, ny = nx / length, ny / length
+
+    approach_x = ball_x + nx * approach_dist_cm
+    approach_y = ball_y + ny * approach_dist_cm
     return round(approach_x, 1), round(approach_y, 1)

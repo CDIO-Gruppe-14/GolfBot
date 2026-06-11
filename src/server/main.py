@@ -37,7 +37,7 @@ from src.communication.connection import PCClient
 from src.communication.protocol import encode_command
 
 from config import (ROBOT_IP, ARUCO_DICT, ROBOT_MARKER_ID,
-                    GOAL_A_MARKER_ID, GOAL_B_MARKER_ID, DELIVER_DISTANCE_CM)
+                    GOAL_A_MARKER_ID, GOAL_B_MARKER_ID)
 
 from src.server.context import GameContext
 from src.server.helpers.goal_utils import load_goals, compute_waypoint
@@ -93,7 +93,8 @@ def setup():
     if goal_a_aruco: print(f"Mål A fundet via ArUco: {goal_a_cm}")
     if goal_b_aruco: print(f"Mål B fundet via ArUco: {goal_b_cm}")
 
-    goal_a_waypoint = compute_waypoint(goal_a_cm[0], goal_a_cm[1], DELIVER_DISTANCE_CM)
+    field_w, field_h = getattr(field_map, "field_size_cm", (180, 120))
+    goal_a_waypoint = compute_waypoint(goal_a_cm[0], goal_a_cm[1], field_w, field_h)
 
     return GameContext(
         camera=camera,

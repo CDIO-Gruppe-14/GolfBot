@@ -67,6 +67,39 @@ GYRO_PORT = "2"
 
 
 # ===========================================================================
+# 2b. ROBOT-FOOTPRINT (fysisk stoerrelse ift. ArUco-markoeren)
+# ===========================================================================
+# Robotten er stoerre end ArUco-markoeren. Disse vaerdier angiver hvor langt
+# robottens kant stikker ud fra markoerens CENTER i hver retning (cm).
+# FRONT er mod koerselsretningen (robottens naese/opsamler).
+#
+#              FRONT
+#           +---------+
+#     LEFT  |   (o)   |  RIGHT      (o) = ArUco-markoerens center
+#           +---------+
+#              BACK
+#
+# Maal afstanden fra markoerens midte ud til hver kant med en lineal.
+# Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
+# og bander -- ikke kun markoer-centret.
+ROBOT_FRONT_CM = 12.0   # markoer-center -> forreste kant (naese/opsamler)
+ROBOT_BACK_CM  = 20.0   # markoer-center -> bageste kant
+ROBOT_LEFT_CM  = 11.0    # markoer-center -> venstre kant
+ROBOT_RIGHT_CM = 11.0    # markoer-center -> hoejre kant
+
+# Konservativ kollisionsradius: afstanden fra markoer-center til robottens
+# fjerneste hjoerne. Orienterings-uafhaengig, saa den gaelder uanset hvordan
+# robotten er drejet. Udregnes automatisk ud fra de fire vaerdier -- ret ikke i haanden.
+import math as _math
+ROBOT_RADIUS_CM = max(
+    _math.hypot(ROBOT_FRONT_CM, ROBOT_LEFT_CM),
+    _math.hypot(ROBOT_FRONT_CM, ROBOT_RIGHT_CM),
+    _math.hypot(ROBOT_BACK_CM, ROBOT_LEFT_CM),
+    _math.hypot(ROBOT_BACK_CM, ROBOT_RIGHT_CM),
+)
+
+
+# ===========================================================================
 # 3. KAMERA
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
@@ -144,7 +177,8 @@ COLLECTOR_OFFSET_CM = 1
 
 # Afstand fra ArUco-markoerens center til robotfronten i cm.
 # Bruges til at omregne maaldistance fra markoer-reference til front-reference.
-ROBOT_FRONT_OFFSET_CM = 10.0
+# = ROBOT_FRONT_CM (se sektion 2b). Navnet bevares af bagudkompatibilitet.
+ROBOT_FRONT_OFFSET_CM = ROBOT_FRONT_CM
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
@@ -207,6 +241,10 @@ GOAL_B_MARKER_ID = 11
 # Sikkerhedsafstand (cm) omkring forhindringer. Bruges både til A* stifinding
 # og til at bestemme afstanden til vores "Approach Point" når en bold samles op.
 OBSTACLE_SAFE_RADIUS_CM = 20.0
+# Afstand (cm) fra banden hvor en bold regnes som "kant-bold", og robotten i
+# stedet koerer til et approach-punkt langs vaegnormalen (vinkelret indefra),
+# saa den ikke rammer banden under opsamling. Brugt i drive_to_ball (#3).
+WALL_SAFE_RADIUS_CM = 15.0
 # Margin (pixels) som ROI'en krympes indad fra Aruco-banehjørnerne — lille
 # sikkerhedsmargin der holder detektion klar af den røde bande.
 FIELD_BORDER_MARGIN_PX = 50

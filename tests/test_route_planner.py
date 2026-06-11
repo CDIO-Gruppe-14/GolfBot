@@ -33,6 +33,26 @@ class TestRoutePlanner(unittest.TestCase):
         self.assertEqual(first_ball, removed_ball)
         self.assertEqual(len(queue), 2)
 
+    def test_orange_is_collected_last(self):
+        """Orange skal samles SIDST (LIFO -> afleveres foerst), selv naar den
+        ligger taettest paa robotten."""
+        ctx = SimpleNamespace(
+            robot=SimpleNamespace(x=0.0, y=0.0),
+            field_map=SimpleNamespace(field_size_cm=(180, 120)),
+        )
+        orange = Ball(10, 10, "orange")  # taettest paa robotten (0,0)
+        balls = [
+            orange,
+            Ball(30, 30, "white"),
+            Ball(60, 60, "white"),
+        ]
+
+        queue = plan_route(ctx, balls, [])
+
+        self.assertEqual(len(queue), 3)
+        self.assertEqual(queue[-1], orange)
+        self.assertNotEqual(queue[0], orange)
+
 
 if __name__ == "__main__":
     unittest.main()

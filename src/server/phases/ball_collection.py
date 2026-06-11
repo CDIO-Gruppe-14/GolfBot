@@ -30,7 +30,7 @@ def collect_ball(ctx, ball):
         queue: deque med resterende bolde
     """
     ctx.iteration += 1
-    print("\n [Opsamling] Opsamler bold paa ({ball.x}, {ball.y})")
+    print(f"\n [Opsamling] Opsamler bold paa ({ball.x}, {ball.y})")
 
     # Koer roligt frem over bolden
     # COLLECTION_SPEED bruges til at styre motorhastighed (langsom koersel)
@@ -46,5 +46,5 @@ def collect_ball(ctx, ball):
     send_and_verify(ctx.client, "COLLECT_STOP")
     send_and_verify(ctx.client, "FORWARD", -5.0)
 
-    print("[{}] [Opsamling] Bold opsamling afsluttet!")
+    print("[{}] [Opsamling] Bold opsamling afsluttet!".format(ctx.iteration))
 
