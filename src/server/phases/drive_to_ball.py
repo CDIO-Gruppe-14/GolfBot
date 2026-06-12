@@ -30,7 +30,7 @@ from src.server.phases.route_planner import _normalize_obstacles
 from src.server.phases.detection import detect_robot
 
 from config import (MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM,
-                    PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_OFFSET_CM,
+                    PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_CM,
                     OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM,
                     WAYPOINT_REACHED_CM)
 
@@ -114,7 +114,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # --- Beregn drejning og afstand ---
         turn_angle, distance = compute_turn_only(
             ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-            front_offset_cm=ROBOT_FRONT_OFFSET_CM)
+            front_offset_cm=ROBOT_FRONT_CM)
 
         print("-" * 60)
         print("[{}] Robot: ({:.1f}, {:.1f})  Bold: ({:.1f}, {:.1f})".format(
@@ -242,10 +242,8 @@ def _verify_facing_ball(ctx, target_x, target_y):
     turn_angle, _ = compute_turn_only(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
         front_offset_cm=0.0)
-    # AFSTAND: fra fronten, saa STOP_DISTANCE_CM gaelder opsamleren, ikke centret.
     _, distance = compute_turn_only(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-        front_offset_cm=ROBOT_FRONT_OFFSET_CM)
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
     return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle, distance
 
 
@@ -259,8 +257,7 @@ def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
     # _verify_facing_ball). Paa kort afstand giver kamera-stoej store
     # vinkelfejl, saa vi bruger en hoejere threshold end normal navigation.
     turn_angle, _ = compute_turn_only(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-        front_offset_cm=0.0)
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
     if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:

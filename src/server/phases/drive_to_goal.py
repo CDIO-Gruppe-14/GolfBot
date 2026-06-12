@@ -25,7 +25,7 @@ from src.server.phases.detection import detect_robot
 from src.planning.command_generator import compute_turn_only
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
-from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_OFFSET_CM,
+from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_CM,
                     WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM)
 
 
@@ -88,7 +88,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
 
         turn_angle, distance = compute_turn_only(
             ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-            front_offset_cm=ROBOT_FRONT_OFFSET_CM)
+            front_offset_cm=ROBOT_FRONT_CM)
 
         print("[{}] {} | Pos: ({:.1f},{:.1f}) -> ({:.1f},{:.1f}) "
               "Dist: {:.1f} Turn: {:.1f}".format(

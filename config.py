@@ -131,9 +131,6 @@ PROFILES_DIR = "color_profiles"
 # Brugt i: src/vision/ball_detector.py  (linje 15)
 BALL_COLORS = ["orange", "white"]
 
-# Sekundær markør på bagsiden af robotten for direkte heading-måling.
-# (Fjernet: Nu bruges ArUco-markører til robot-tracking og heading)
-
 # Morfologi kernel-størrelse til støjreduktion i masker
 # Brugt i: src/vision/color_detector.py  (linje 63) og hsv_utils.py  (linje 24)
 MORPH_KERNEL_SIZE = 5
@@ -168,21 +165,16 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 2.0
+MIN_TURN_DEGREES = 1.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_OFFSET_CM = 10
-
-# Afstand fra ArUco-markoerens center til robotfronten i cm.
-# Bruges til at omregne maaldistance fra markoer-reference til front-reference.
-# = ROBOT_FRONT_CM (se sektion 2b). Navnet bevares af bagudkompatibilitet.
-ROBOT_FRONT_OFFSET_CM = ROBOT_FRONT_CM
+COLLECTOR_MOVEMENT_CM = 10
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 30.0
+MAX_STEP_CM = 100.0
 
 # Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
 # Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
@@ -193,9 +185,8 @@ APPROACH_DISTANCE_CM = 15
 STOP_DISTANCE_CM = 4.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
-# Højere end MIN_TURN_DEGREES fordi kamera-støj dominerer på kort afstand.
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 5.0
+PRECISION_MIN_TURN_DEGREES = 1.0
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)

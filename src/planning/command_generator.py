@@ -3,7 +3,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import MAX_STEP_CM, ROBOT_FRONT_OFFSET_CM
+from config import MAX_STEP_CM, ROBOT_FRONT_CM
 
 
 def _front_position(robot_x, robot_y, robot_heading, front_offset_cm):
@@ -17,7 +17,7 @@ def _front_position(robot_x, robot_y, robot_heading, front_offset_cm):
 
 
 def compute_turn_and_distance(robot_x, robot_y, robot_heading, target_x, target_y,
-                              front_offset_cm=ROBOT_FRONT_OFFSET_CM):
+                              front_offset_cm=ROBOT_FRONT_CM):
     """Beregn drejning og afstand fra robotfronten til et maaalpunkt."""
     front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
 
@@ -50,7 +50,7 @@ def compute_distance(robot_x, robot_y, ball_x, ball_y):
 
 
 def compute_turn_only(robot_x, robot_y, robot_heading, ball_x, ball_y,
-                      front_offset_cm=ROBOT_FRONT_OFFSET_CM):
+                      front_offset_cm=ROBOT_FRONT_CM):
     """
     Beregn KUN drejning. Returnerer (turn_angle, distance).
     Kalder IKKE forward -- det goer serveren separat efter re-evaluering.
