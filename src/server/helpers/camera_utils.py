@@ -16,27 +16,13 @@ def get_fresh_frame(camera, flushes=3):
 
 
 def extract_heading(robot, field_map):
-    """Beregn heading i cm-koordinater fra dobbelt-markoer.
-    Returnerer None hvis kun en markoer er synlig."""
-    if robot.back_x is None:
-        return None
+    """Heading er nu altid tilgængelig fra ArUco-markøren."""
+    # Konvertér pixel-heading til cm-space heading
+    # ved at transformere to punkter langs heading-vektoren
+    import math
+    dx = math.cos(math.radians(robot.heading))
+    dy = math.sin(math.radians(robot.heading))
+    
     fx, fy = field_map.pixel_to_cm(robot.x, robot.y)
-    bx, by = field_map.pixel_to_cm(robot.back_x, robot.back_y)
-    return math.degrees(math.atan2(fy - by, fx - bx))
-
-
-def find_robot(camera, tracker, field_map):
-    """Tag nyt billede og find robot.
-    Returnerer (rx, ry, heading) eller None.
-    heading er None hvis kun en markoer er fundet."""
-    frame = get_fresh_frame(camera)
-    if frame is None:
-        return None
-
-    robot = tracker.locate(frame)
-    if robot is None:
-        return None
-
-    rx, ry = field_map.pixel_to_cm(robot.x, robot.y)
-    heading = extract_heading(robot, field_map)
-    return (rx, ry, heading)
+    tx, ty = field_map.pixel_to_cm(robot.x + dx * 50, robot.y + dy * 50)
+    return math.degrees(math.atan2(ty - fy, tx - fx))

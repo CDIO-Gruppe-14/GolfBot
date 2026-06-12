@@ -23,19 +23,25 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from src.entities.robot import Robot
+
 from src.vision.camera import RobotCamera
 from src.vision.color_detector import ColorDetector
 from src.vision.robot_tracker import RobotTracker
 from src.vision.ball_detector import BallDetector
+from src.vision.obstacle_detector import ObstacleDetector
 from src.vision.field_map import FieldMap
+from src.vision.aruco_detector import ArucoDetector
+from src.vision.goal_detector import GoalDetector
 from src.communication.connection import PCClient
 from src.communication.protocol import encode_command
 
-from config import ROBOT_IP, MARKER_COLOR, MARKER_COLOR_BACK
+from config import (ROBOT_IP, ARUCO_DICT, ROBOT_MARKER_ID,
+                    GOAL_A_MARKER_ID, GOAL_B_MARKER_ID)
 
 from src.server.context import GameContext
 from src.server.helpers.goal_utils import load_goals, compute_waypoint
-from src.server.phases.detection import detect_all
+from src.server.phases.detection import detect_robot, detect_balls, detect_obstacles
 from src.server.phases.route_planner import plan_route
 from src.server.phases.drive_to_ball import drive_to_ball
 from src.server.phases.ball_collection import collect_ball
@@ -46,36 +52,61 @@ from src.server.phases.delivery import deliver_balls
 def setup():
     """Initialiserer hardware og returnerer GameContext."""
     camera = RobotCamera()
+    # ArUco
+    aruco = ArucoDetector(ARUCO_DICT)
+    tracker = RobotTracker(aruco, ROBOT_MARKER_ID)
+
+    # HSV-farvedetektion (bevares for bolde)
     detector = ColorDetector()
     loaded = detector.load_all_profiles()
     print("Indlaedte farveprofiler: {}".format(loaded))
 
-    tracker = RobotTracker(detector, marker_color=MARKER_COLOR,
-                           marker_color_back=MARKER_COLOR_BACK)
-    ball_det = BallDetector(detector)
-    field_map = FieldMap()
-    client = PCClient(ROBOT_IP)
+    # Banekalibrering via ArUco (definerer ROI for bold-/forhindringsdetektion)
+    field_map = FieldMap(aruco_detector=aruco)
+    ball_det = BallDetector(detector, field_map)
+    obstacle_det = ObstacleDetector(detector, field_map)
 
+    client = PCClient(ROBOT_IP)
+    
     print("Forbinder til EV3...")
     if not client.connect_to_robot():
         print("Kunne ikke forbinde til robotten. Afslutter.")
         return None
-
     print("Forbundet!")
 
-    # Indlaes maalkoordinater
-    goal_a_cm, goal_b_cm = load_goals()
-    goal_a_waypoint = compute_waypoint(goal_a_cm[0], goal_a_cm[1], offset_cm=20.0)
+    # Tag et test-billede til kalibrering
+    frame = camera.get_frame()
+    if frame is not None:
+        if not field_map.calibrate_from_aruco(frame):
+            print("ArUco bane-kalibrering fejlede — bruger fallback")
+        else:
+            print("ArUco bane-kalibrering succes!")
+
+    # Mål via ArUco med fallback
+    goal_det = GoalDetector(aruco, field_map, GOAL_A_MARKER_ID, GOAL_B_MARKER_ID)
+    goal_a_aruco, goal_b_aruco = goal_det.detect_goals(frame) if frame is not None else (None, None)
+    
+    goal_a_fallback, goal_b_fallback = load_goals()
+    goal_a_cm = goal_a_aruco if goal_a_aruco else goal_a_fallback
+    goal_b_cm = goal_b_aruco if goal_b_aruco else goal_b_fallback
+    
+    if goal_a_aruco: print(f"Mål A fundet via ArUco: {goal_a_cm}")
+    if goal_b_aruco: print(f"Mål B fundet via ArUco: {goal_b_cm}")
+
+    field_w, field_h = getattr(field_map, "field_size_cm", (180, 120))
+    goal_a_waypoint = compute_waypoint(goal_a_cm[0], goal_a_cm[1], field_w, field_h)
 
     return GameContext(
         camera=camera,
         tracker=tracker,
         ball_detector=ball_det,
+        obstacle_detector=obstacle_det,
         field_map=field_map,
         client=client,
         goal_a_cm=goal_a_cm,
         goal_b_cm=goal_b_cm,
-        goal_a_waypoint=goal_a_waypoint
+        goal_a_waypoint=goal_a_waypoint,
+        robot=Robot()
     )
 
 
@@ -84,14 +115,12 @@ def main():
     if ctx is None:
         return
 
+    if not detect_robot(ctx):
+        print("ADVARSEL: Robot ikke fundet ved start -- fortsaetter (faserne detekterer igen)")
+
     print("\n" + "=" * 60)
     print("GolfBot startet -- foelger whiteboard-flow")
     print("=" * 60)
-
-    # Start opsamlingsmotor (koerer konstant under hele koerslen)
-    print("Starter opsamlingsmotor...")
-    from src.server.helpers.command_utils import send_and_verify
-    send_and_verify(ctx.client, "COLLECT_START")
 
     try:
         while True:
@@ -99,8 +128,9 @@ def main():
             # Fase 1: Detekter (se elementer, gem positioner)
             # -----------------------------------------------------------
             print("\n>>> FASE 1: DETEKTION <<<")
-            detection = detect_all(ctx)
-            if detection is None:
+            balls = detect_balls(ctx)
+            obstacles = detect_obstacles(ctx)
+            if balls is None or obstacles is None:
                 print("Detektion fejlede. Proever igen...")
                 continue
 
@@ -108,9 +138,9 @@ def main():
             # Fase 2: Lav rute (prioritetskoee)
             # -----------------------------------------------------------
             print("\n>>> FASE 2: RUTEPLANLAEGNING <<<")
-            queue = plan_route(ctx, detection)
+            queue = plan_route(ctx, balls, obstacles)
 
-            if not queue.has_balls():
+            if not queue:
                 print("Ingen bolde fundet. Afslutter.")
                 break
 
@@ -118,26 +148,27 @@ def main():
             # Fase 3 + 4: Opsam alle bolde (while bold != null)
             # -----------------------------------------------------------
             print("\n>>> FASE 3+4: OPSAMLING AF {} BOLDE <<<".format(
-                queue.remaining()))
+                len(queue)))
 
-            while queue.has_balls():
-                ball = queue.next()
+            while queue:
+                ball = queue[0]
 
                 # Fase 3: Koer til bold
-                success = drive_to_ball(ctx, ball)
+                success = drive_to_ball(ctx, ball, obstacles)
                 if not success:
                     print("Koersel til bold fejlede. Springer over.")
-                    queue.mark_collected(ball)
+                    queue.popleft()
                     continue
 
                 # Fase 4: Opsam bold
-                collect_ball(ctx, ball, queue)
+                collect_ball(ctx, ball)
+                queue.popleft()
 
             # -----------------------------------------------------------
             # Fase 5: Koer til maal
             # -----------------------------------------------------------
             print("\n>>> FASE 5: KOER TIL MAAL <<<")
-            drive_to_goal(ctx)
+            drive_to_goal(ctx, obstacles)
 
             # -----------------------------------------------------------
             # Fase 6: Aflevering
@@ -149,13 +180,12 @@ def main():
             # Fase 7: Detekter for ny runde
             # -----------------------------------------------------------
             print("\n>>> FASE 7: NY DETEKTION <<<")
-            detection = detect_all(ctx)
-            if detection is None or not detection.has_balls():
+            balls = detect_balls(ctx)
+            if balls is None or not balls:
                 print("Alle bolde samlet op. Afslutter.")
                 break
 
-            print("{} bolde tilbage -- starter ny runde!".format(
-                len(detection.balls)))
+            print("{} bolde tilbage -- starter ny runde!".format(len(balls)))
             # Loop fortsaetter -> ny rute fra fase 2
 
     except KeyboardInterrupt:

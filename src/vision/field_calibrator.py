@@ -24,7 +24,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from camera import RobotCamera
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from src.vision.camera import RobotCamera
+from src.vision.aruco_detector import ArucoDetector
+from config import ARUCO_DICT, FIELD_MARKER_IDS
 
 CALIBRATION_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -50,6 +53,7 @@ class FieldCalibrator:
         self.camera = camera
         self.corners = []
         self._last_frame = None
+        self.aruco = ArucoDetector(ARUCO_DICT)
 
         os.makedirs(os.path.dirname(CALIBRATION_FILE), exist_ok=True)
 
@@ -107,6 +111,23 @@ class FieldCalibrator:
 
     def run(self):
         print("\n── GolfBot Bane-kalibrering ──")
+        print("Trin 1: Forsøger auto-kalibrering via ArUco-markører...")
+        
+        # Forsøg ArUco
+        frame = self.camera.get_frame()
+        if frame is not None:
+            detections = self.aruco.detect(frame)
+            found = [FIELD_MARKER_IDS[i] in detections for i in range(4)]
+            if all(found):
+                self.corners = [self.aruco.get_center(detections[cid]) for cid in FIELD_MARKER_IDS]
+                print("  ✓ Alle 4 markører fundet automatisk!")
+                self._save()
+                return
+            else:
+                missing = [FIELD_MARKER_IDS[i] for i in range(4) if not found[i]]
+                print(f"  ✗ Kunne ikke finde markørerne: {missing}")
+
+        print("\nTrin 2: Manuel kalibrering (klik hjørner)")
         print("Klik de 4 hjørner i rækkefølge:")
         for lbl in CORNER_LABELS:
             print(f"  {lbl}")

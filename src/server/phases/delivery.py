@@ -37,7 +37,7 @@ def deliver_balls(ctx):
     # Vent paa at boldene triller ud
     print("[{}] [Aflevering] Venter 3 sekunder paa at boldene triller ud...".format(
         ctx.iteration))
-    time.sleep(3.0)
+    time.sleep(5.0)
 
     # Bak vaek fra maalet
     print("[{}] [Aflevering] Bakker 10 cm vaek fra maalet...".format(ctx.iteration))
@@ -46,6 +46,6 @@ def deliver_balls(ctx):
 
     print("[{}] [Aflevering] Aflevering faerdig!".format(ctx.iteration))
 
-    # Genstart opsamlingsmotor (klar til naeste runde)
-    print("[{}] [Aflevering] Genstarter opsamlingsmotor...".format(ctx.iteration))
-    send_and_verify(ctx.client, "COLLECT_START")
+    # Stop aflevringsmotor (klar til naeste runde)
+    print("[{}] [Aflevering] Stopper aflevringsmotor...".format(ctx.iteration))
+    send_and_verify(ctx.client, "COLLECT_STOP")

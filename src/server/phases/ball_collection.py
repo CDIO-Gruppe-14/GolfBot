@@ -13,9 +13,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from src.server.helpers.command_utils import send_and_verify
+from src.entities.ball import Ball
+from config import COLLECTOR_MOVEMENT_CM
 
 
-def collect_ball(ctx, ball, queue):
+def collect_ball(ctx, ball):
     """
     Fase 4: Opsam bolden.
 
@@ -25,22 +27,25 @@ def collect_ball(ctx, ball, queue):
 
     Args:
         ctx: GameContext
-        ball: (x_cm, y_cm, color) tuple
-        queue: BallQueue -- bolden markeres som opsamlet her
+        ball: Ball-objekt fra køen
+        queue: deque med resterende bolde
     """
     ctx.iteration += 1
-    print("\n[{}] [Opsamling] Opsamler {} bold paa ({:.1f}, {:.1f})".format(
-        ctx.iteration, ball[2], ball[0], ball[1]))
+    print(f"\n [Opsamling] Opsamler bold paa ({ball.x}, {ball.y})")
 
     # Koer roligt frem over bolden
     # COLLECTION_SPEED bruges til at styre motorhastighed (langsom koersel)
     # TODO: Implementer langsom koersel via separat kommando eller parameter
-    print("[{}] [Opsamling] Koerer roligt frem over bolden...".format(ctx.iteration))
-    send_and_verify(ctx.client, "FORWARD", 5.0)
-    time.sleep(0.5)
+    
+    print("[{}] [Opsamling] Starter motor".format(ctx.iteration))
+    
+    send_and_verify(ctx.client, "COLLECT_START")
 
-    # Marker som opsamlet
-    queue.mark_collected(ball)
-    print("[{}] [Opsamling] Bold opsamlet! {} bolde tilbage i koeen.".format(
-        ctx.iteration, queue.remaining()))
+    print("[{}] [Opsamling] Koerer roligt frem over bolden...".format(ctx.iteration))
+    send_and_verify(ctx.client, "FORWARD", COLLECTOR_MOVEMENT_CM )
+    time.sleep(3.0)
+    send_and_verify(ctx.client, "COLLECT_STOP")
+    send_and_verify(ctx.client, "FORWARD", -COLLECTOR_MOVEMENT_CM)
+
+    print("[{}] [Opsamling] Bold opsamling afsluttet!".format(ctx.iteration))
 
