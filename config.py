@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.12"
+ROBOT_IP    = "172.20.10.4"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -58,7 +58,7 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Opsamlingsmotor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
+COLLECTOR_SPEED      = 30        # Hastighed i procent (0-100)
 COLLECTION_SPEED     = 15        # Langsom koerselshastighed under opsamling (0-100)
 
 # Gyroseensor input-port
@@ -104,7 +104,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -173,7 +173,7 @@ MIN_TURN_DEGREES = 2.0
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_OFFSET_CM = 10
+COLLECTOR_OFFSET_CM = 25
 
 # Afstand fra ArUco-markoerens center til robotfronten i cm.
 # Bruges til at omregne maaldistance fra markoer-reference til front-reference.
@@ -215,10 +215,12 @@ GOAL_B_CM = (90.0, 120.0)  # Standard placering bund midt
 # ===========================================================================
 # 8. ARUCO MARKØRER
 # ===========================================================================
-import cv2
-
-# Dictionary-type (4×4 = mindst grid -> bedst detektion)
-ARUCO_DICT = cv2.aruco.DICT_4X4_50
+try:
+    import cv2
+    # Dictionary-type (4×4 = mindst grid -> bedst detektion)
+    ARUCO_DICT = cv2.aruco.DICT_4X4_50
+except ImportError:
+    ARUCO_DICT = 0
 
 # Robot-markør
 ROBOT_MARKER_ID = 42
