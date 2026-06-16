@@ -89,7 +89,7 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
     obstacles_cm = []
     for o in ctx.obstacle_detector.find_obstacles(frame):
         ox, oy = ctx.field_map.pixel_to_cm(o.x, o.y)
-        radius = _obstacle_radius_cm(ctx, o, ox, oy)
+        radius = obstacle_radius_cm(ctx.field_map, o, ox, oy)
         obstacles_cm.append((ox, oy, radius))
 
     if obstacles_cm:
@@ -100,7 +100,7 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
     return obstacles_cm
 
 
-def _obstacle_radius_cm(ctx, obstacle, center_x_cm, center_y_cm) -> float:
+def obstacle_radius_cm(field_map, obstacle, center_x_cm, center_y_cm) -> float:
     """Maal krydsets fysiske radius (cm) ud fra dets bounding box.
 
     Krydset er et '+': bbox'ens HJOERNER er tomme (ingen kryds der), saa de ville
@@ -109,7 +109,8 @@ def _obstacle_radius_cm(ctx, obstacle, center_x_cm, center_y_cm) -> float:
     til et kant-midtpunkt = halv arm-bredde (fx 10 cm for et 20 cm kryds).
 
     Perspektiv-transformen er ikke-lineaer, saa midtpunkterne konverteres til cm
-    foer afstanden maales (ingen direkte pixel->cm-skalering)."""
+    foer afstanden maales (ingen direkte pixel->cm-skalering). Genbruges af
+    route_visualizer, saa plot og koersel maaler krydset ens."""
     bbox = getattr(obstacle, "bbox", None)
     if not bbox:
         return 0.0
@@ -122,6 +123,6 @@ def _obstacle_radius_cm(ctx, obstacle, center_x_cm, center_y_cm) -> float:
     ]
     radius = 0.0
     for px, py in edge_mids_px:
-        cx, cy = ctx.field_map.pixel_to_cm(px, py)
+        cx, cy = field_map.pixel_to_cm(px, py)
         radius = max(radius, ((cx - center_x_cm) ** 2 + (cy - center_y_cm) ** 2) ** 0.5)
     return radius

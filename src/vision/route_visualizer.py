@@ -18,12 +18,15 @@ To modes:
 
 Forklaring paa tegningen:
   * Roedt kryds      = forhindring (det Roede Kryds)
-  * Lys roed cirkel  = krop-clearance (robot_radius) -- kroppen maa ikke ind her
-  * Moerk roed cirkel = fuld clearance (safe_radius + robot_radius)
+  * Inderste cirkel  = krydsets MAALTE radius (fysisk udstraekning)
+  * Lys roed cirkel  = krop-clearance (obstacle_radius + robot_radius)
+  * Moerk roed cirkel = fuld clearance (obstacle_radius + safe_radius + robot_radius)
   * Bla ramme        = bande-inset: markoer-centret maa ikke udenfor
   * Groen polygon    = robottens footprint (FRONT/BACK/LEFT/RIGHT) i dens heading
   * Gul/hvid prikker = bolde (gul = orange VIP)
   * Farvede linjer   = ruten pr. bold i planlagt raekkefoelge
+  * Hvid linje       = ruten fra sidste bold -> waypoint -> maal (Fase 5)
+  * Hvid firkant     = waypoint foran maalet  |  Hvidt kryds = maalet
 """
 
 import os
@@ -50,11 +53,40 @@ OUTPUT_DIR = os.path.join(
     "docs", "images")
 
 
-def plan_legs(robot_xy, balls, obstacles_cm, field_w, field_h):
-    """Planlaegger ruten pr. bold i samme raekkefoelge som spillet (orange sidst).
+def _plan_one(start, target, obstacles_cm, field_w, field_h):
+    """A*-leg fra start til target. Returnerer (pts, reachable, used_safe)."""
+    route, used_safe = find_path_adaptive(
+        start, target, obstacles_cm, field_w, field_h,
+        safe_radius=OBSTACLE_SAFE_RADIUS_CM, robot_radius=ROBOT_RADIUS_CM)
+    reachable = route is not None
+    pts = [start] + (route if reachable else [target])
+    return pts, reachable, used_safe
 
-    Returnerer (legs, order) hvor legs er en liste af (start, route, reachable)
-    og order er boldene i planlagt raekkefoelge."""
+
+def _plan_goal_legs(start, obstacles_cm, field_w, field_h, goal=None):
+    """Fase 5-ruten EFTER sidste bold: sidste position -> waypoint -> maal.
+
+    Bruger samme waypoint/maal-kilde som serveren (goal_utils), saa plottet
+    matcher den faktiske koersel. Begge ben planlaegges med A* udenom krydset
+    (Trin 2 mod maalet undgaar nu ogsaa forhindringer)."""
+    from src.server.helpers.goal_utils import compute_waypoint, load_goals
+    if goal is None:
+        goal, _ = load_goals()
+    goal = (float(goal[0]), float(goal[1]))
+    wp = compute_waypoint(goal[0], goal[1], field_w, field_h)
+
+    leg_to_wp = _plan_one(start, wp, obstacles_cm, field_w, field_h)
+    leg_to_goal = _plan_one(wp, goal, obstacles_cm, field_w, field_h)
+    return [leg_to_wp, leg_to_goal], wp, goal
+
+
+def plan_legs(robot_xy, balls, obstacles_cm, field_w, field_h, goal=None):
+    """Planlaegger ruten pr. bold i samme raekkefoelge som spillet (orange sidst),
+    EFTERFULGT af Fase 5-ruten til maalet via et waypoint.
+
+    Returnerer (legs, order, goal_legs, waypoint, goal) hvor legs er bold-benene
+    [(pts, reachable, used_safe)], order er boldene i planlagt raekkefoelge, og
+    goal_legs er [sidste->waypoint, waypoint->maal]."""
     ctx = SimpleNamespace(
         robot=SimpleNamespace(x=robot_xy[0], y=robot_xy[1]),
         field_map=SimpleNamespace(field_size_cm=(field_w, field_h)),
@@ -64,14 +96,13 @@ def plan_legs(robot_xy, balls, obstacles_cm, field_w, field_h):
     legs = []
     start = (robot_xy[0], robot_xy[1])
     for ball in order:
-        route, used_safe = find_path_adaptive(
-            start, (ball.x, ball.y), obstacles_cm, field_w, field_h,
-            safe_radius=OBSTACLE_SAFE_RADIUS_CM, robot_radius=ROBOT_RADIUS_CM)
-        reachable = route is not None
-        pts = [start] + (route if reachable else [(ball.x, ball.y)])
-        legs.append((pts, reachable, used_safe))
+        leg = _plan_one(start, (ball.x, ball.y), obstacles_cm, field_w, field_h)
+        legs.append(leg)
         start = (ball.x, ball.y)
-    return legs, order
+
+    goal_legs, waypoint, goal = _plan_goal_legs(
+        start, obstacles_cm, field_w, field_h, goal)
+    return legs, order, goal_legs, waypoint, goal
 
 
 def _footprint_polygon(rx, ry, heading_deg):
@@ -92,7 +123,8 @@ def _footprint_polygon(rx, ry, heading_deg):
     return corners
 
 
-def render_topdown(field_size, obstacles_cm, robot, balls, legs):
+def render_topdown(field_size, obstacles_cm, robot, balls, legs,
+                   goal_legs=None, waypoint=None, goal=None):
     """Tegner et top-down kort af scenen + ruterne. Returnerer et BGR-billede."""
     fw, fh = field_size
     img = np.full((int(fh * SCALE), int(fw * SCALE), 3), 35, np.uint8)
@@ -105,11 +137,17 @@ def render_topdown(field_size, obstacles_cm, robot, balls, legs):
     rr = ROBOT_RADIUS_CM
     cv2.rectangle(img, P(rr, rr), P(fw - rr, fh - rr), (110, 70, 50), 1)
 
-    # Forhindringer med clearance-cirkler
-    full = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
-    for ox, oy in obstacles_cm:
+    # Forhindringer med clearance-cirkler. Per-forhindring radius (obs[2]) laegges
+    # oveni baade krop- og fuld clearance, saa cirklerne matcher pathfinderen.
+    for obs in obstacles_cm:
+        ox, oy = obs[0], obs[1]
+        obs_r = obs[2] if len(obs) >= 3 else 0.0
+        full = obs_r + OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
+        body = obs_r + ROBOT_RADIUS_CM
         cv2.circle(img, P(ox, oy), int(full * SCALE), (60, 60, 130), 1)
-        cv2.circle(img, P(ox, oy), int(ROBOT_RADIUS_CM * SCALE), (80, 80, 220), 1)
+        cv2.circle(img, P(ox, oy), int(body * SCALE), (80, 80, 220), 1)
+        if obs_r > 0:
+            cv2.circle(img, P(ox, oy), int(obs_r * SCALE), (40, 40, 90), 1)
         cv2.drawMarker(img, P(ox, oy), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 16, 2)
 
     # Ruter pr. bold
@@ -120,6 +158,22 @@ def render_topdown(field_size, obstacles_cm, robot, balls, legs):
                      lineType=cv2.LINE_AA if reachable else cv2.LINE_4)
         for p in pts[1:]:
             cv2.circle(img, P(*p), 4, color, -1)
+
+    # Mål-ruten (Fase 5): sidste bold -> waypoint -> maal, tegnet hvidt.
+    for pts, reachable, _used in (goal_legs or []):
+        color = (255, 255, 255) if reachable else (0, 0, 255)
+        for a, b in zip(pts, pts[1:]):
+            cv2.line(img, P(*a), P(*b), color, 2,
+                     lineType=cv2.LINE_AA if reachable else cv2.LINE_4)
+        for p in pts[1:]:
+            cv2.circle(img, P(*p), 4, color, -1)
+    if waypoint is not None:
+        wp_px = P(*waypoint)
+        cv2.rectangle(img, (wp_px[0] - 5, wp_px[1] - 5),
+                      (wp_px[0] + 5, wp_px[1] + 5), (255, 255, 255), 2)
+    if goal is not None:
+        cv2.drawMarker(img, P(*goal), (255, 255, 255),
+                       cv2.MARKER_TILTED_CROSS, 18, 2)
 
     # Bolde
     for ball in balls:
@@ -144,18 +198,30 @@ def render_topdown(field_size, obstacles_cm, robot, balls, legs):
     return img
 
 
-def _print_summary(legs, order):
+def _leg_tag(reachable, used_safe):
+    if not reachable:
+        return "SPRINGES OVER (indespaerret -- ingen sikker sti)"
+    if used_safe is not None and used_safe < OBSTACLE_SAFE_RADIUS_CM:
+        return "OK [reduceret buffer={:.0f} cm pga. traang bane]".format(used_safe)
+    return "OK"
+
+
+def _print_summary(legs, order, goal_legs=None):
     print("\n=== Planlagt rute ===")
     for i, (ball, (pts, reachable, used_safe)) in enumerate(zip(order, legs)):
-        if not reachable:
-            tag = "SPRINGES OVER (indespaerret -- ingen sikker sti)"
-        elif used_safe < OBSTACLE_SAFE_RADIUS_CM:
-            tag = "OK [reduceret buffer={:.0f} cm pga. traang bane]".format(used_safe)
-        else:
-            tag = "OK"
+        tag = _leg_tag(reachable, used_safe)
         wps = " -> ".join("({:.0f},{:.0f})".format(x, y) for x, y in pts)
         print(f"  Bold {i+1} [{ball.color}] @({ball.x:.0f},{ball.y:.0f}): {tag}")
         print(f"      {wps}")
+
+    if goal_legs:
+        labels = ["-> waypoint", "-> maal    "]
+        print("  --- Fase 5: koer til maal ---")
+        for label, (pts, reachable, used_safe) in zip(labels, goal_legs):
+            wps = " -> ".join("({:.0f},{:.0f})".format(x, y) for x, y in pts)
+            print(f"  {label}: {_leg_tag(reachable, used_safe)}")
+            print(f"      {wps}")
+
     if any(not r for _, r, _ in legs):
         print("\n  Bemaerk: bolde markeret SPRINGES OVER er reelt indespaerret af"
               " forhindringer. Robotten koerer IKKE ind i krydset -- den springer"
@@ -164,7 +230,7 @@ def _print_summary(legs, order):
 
 def run_demo():
     fw, fh = FIELD_SIZE_CM
-    obstacles_cm = [(90, 60)]                      # Roedt Kryds i midten
+    obstacles_cm = [(90, 60, 10.0)]                # Roedt Kryds (radius 10 cm) i midten
     robot = SimpleNamespace(x=20.0, y=60.0, heading=0.0)
     balls = [
         Ball(160, 60, "white"),                    # lige bag forhindringen
@@ -172,10 +238,12 @@ def run_demo():
         Ball(40, 95, "orange"),
     ]
 
-    legs, order = plan_legs((robot.x, robot.y), balls, obstacles_cm, fw, fh)
-    _print_summary(legs, order)
+    legs, order, goal_legs, waypoint, goal = plan_legs(
+        (robot.x, robot.y), balls, obstacles_cm, fw, fh)
+    _print_summary(legs, order, goal_legs)
 
-    img = render_topdown((fw, fh), obstacles_cm, robot, balls, legs)
+    img = render_topdown((fw, fh), obstacles_cm, robot, balls, legs,
+                         goal_legs=goal_legs, waypoint=waypoint, goal=goal)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     out = os.path.join(OUTPUT_DIR, "route_preview.png")
     cv2.imwrite(out, img)
@@ -226,10 +294,12 @@ def run_camera():
         bx, by = field_map.pixel_to_cm(b.x, b.y)
         balls.append(Ball(bx, by, b.color))
 
+    from src.server.phases.detection import obstacle_radius_cm
     obstacles_cm = []
     for o in obstacle_det.find_obstacles(frame):
         ox, oy = field_map.pixel_to_cm(o.x, o.y)
-        obstacles_cm.append((ox, oy))
+        r = obstacle_radius_cm(field_map, o, ox, oy)
+        obstacles_cm.append((ox, oy, r))
 
     print(f"Detekteret: {len(balls)} bolde, {len(obstacles_cm)} forhindring(er).")
     if not obstacles_cm:
@@ -237,13 +307,16 @@ def run_camera():
               " planlaegges. Tjek farveprofil 'roed' / ObstacleDetector hvis der"
               " faktisk staar et kryds paa banen.")
 
-    legs, order = plan_legs(robot_xy, balls, obstacles_cm, fw, fh)
-    _print_summary(legs, order)
+    legs, order, goal_legs, waypoint, goal = plan_legs(
+        robot_xy, balls, obstacles_cm, fw, fh)
+    _print_summary(legs, order, goal_legs)
 
     # Top-down kort
-    topdown = render_topdown((fw, fh), obstacles_cm, robot, balls, legs)
+    topdown = render_topdown((fw, fh), obstacles_cm, robot, balls, legs,
+                             goal_legs=goal_legs, waypoint=waypoint, goal=goal)
     # Overlay paa selve kamerabilledet
-    overlay = _draw_overlay(frame.copy(), field_map, obstacles_cm, balls, legs)
+    overlay = _draw_overlay(frame.copy(), field_map, obstacles_cm, balls, legs,
+                            goal_legs=goal_legs, waypoint=waypoint, goal=goal)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     top_out = os.path.join(OUTPUT_DIR, "route_topdown.png")
@@ -256,20 +329,38 @@ def run_camera():
     camera.release()
 
 
-def _draw_overlay(frame, field_map, obstacles_cm, balls, legs):
+def _draw_overlay(frame, field_map, obstacles_cm, balls, legs,
+                  goal_legs=None, waypoint=None, goal=None):
     """Tegner ruten + objekter oven paa kamerabilledet via cm_to_pixel."""
     def Q(x, y):
         px, py = field_map.cm_to_pixel(x, y)
         return (int(round(px)), int(round(py)))
 
-    for ox, oy in obstacles_cm:
-        cv2.drawMarker(frame, Q(ox, oy), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 22, 3)
+    for obs in obstacles_cm:
+        cv2.drawMarker(frame, Q(obs[0], obs[1]), (0, 0, 255),
+                       cv2.MARKER_TILTED_CROSS, 22, 3)
     for i, (pts, reachable, _used) in enumerate(legs):
         color = LEG_COLORS[i % len(LEG_COLORS)] if reachable else (0, 0, 255)
         for a, b in zip(pts, pts[1:]):
             cv2.line(frame, Q(*a), Q(*b), color, 2, cv2.LINE_AA)
         for p in pts[1:]:
             cv2.circle(frame, Q(*p), 5, color, -1)
+
+    # Mål-ruten (Fase 5), hvidt.
+    for pts, reachable, _used in (goal_legs or []):
+        color = (255, 255, 255) if reachable else (0, 0, 255)
+        for a, b in zip(pts, pts[1:]):
+            cv2.line(frame, Q(*a), Q(*b), color, 2, cv2.LINE_AA)
+        for p in pts[1:]:
+            cv2.circle(frame, Q(*p), 5, color, -1)
+    if waypoint is not None:
+        wp = Q(*waypoint)
+        cv2.rectangle(frame, (wp[0] - 7, wp[1] - 7), (wp[0] + 7, wp[1] + 7),
+                      (255, 255, 255), 2)
+    if goal is not None:
+        cv2.drawMarker(frame, Q(*goal), (255, 255, 255),
+                       cv2.MARKER_TILTED_CROSS, 24, 2)
+
     for ball in balls:
         c = (0, 165, 255) if ball.color == "orange" else (245, 245, 245)
         cv2.circle(frame, Q(ball.x, ball.y), 8, c, 2)
