@@ -71,11 +71,16 @@ def detect_balls(ctx) -> Optional[List[Ball]]:
     return balls
 
 
-def detect_obstacles(ctx) -> Optional[List[Tuple[float, float]]]:
-    """Find forhindringer (det Roede Kryds) og returner cm-koordinater.
+def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
+    """Find forhindringer (det Roede Kryds) og returner cm-koordinater + radius.
+
+    Hver forhindring returneres som (x_cm, y_cm, radius_cm), hvor radius_cm er
+    krydsets FYSISKE udstraekning fra centrum -- maalt ud fra bounding-box'en, saa
+    pathfinderen kan holde en buffer der svarer til korsets faktiske stoerrelse i
+    stedet for at antage et punkt. Falder tilbage til radius 0 hvis bbox mangler.
 
     Returns:
-        Liste af (x, y)-tupler (evt. tom), eller None ved kamerafejl.
+        Liste af (x, y, radius)-tupler (evt. tom), eller None ved kamerafejl.
     """
     frame = _capture_frame(ctx)
     if frame is None:
@@ -84,11 +89,31 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float]]]:
     obstacles_cm = []
     for o in ctx.obstacle_detector.find_obstacles(frame):
         ox, oy = ctx.field_map.pixel_to_cm(o.x, o.y)
-        obstacles_cm.append((ox, oy))
+        radius = _obstacle_radius_cm(ctx, o, ox, oy)
+        obstacles_cm.append((ox, oy, radius))
 
     if obstacles_cm:
         print(f"[Detektion] Fundet {len(obstacles_cm)} forhindring(er) (Rødt Kryds):")
         for o in obstacles_cm:
-            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm")
+            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm, radius {o[2]:.1f} cm")
 
     return obstacles_cm
+
+
+def _obstacle_radius_cm(ctx, obstacle, center_x_cm, center_y_cm) -> float:
+    """Maal krydsets fysiske radius (cm) fra dets bounding box.
+
+    Perspektiv-transformen er ikke-lineaer, saa en pixel-stoerrelse kan ikke
+    skaleres direkte til cm. I stedet konverteres bbox-hjoernerne til cm og den
+    stoerste afstand fra centrum til et hjoerne tages som radius (halv diagonal).
+    """
+    bbox = getattr(obstacle, "bbox", None)
+    if not bbox:
+        return 0.0
+    bx, by, bw, bh = bbox
+    corners_px = [(bx, by), (bx + bw, by), (bx + bw, by + bh), (bx, by + bh)]
+    radius = 0.0
+    for px, py in corners_px:
+        cx, cy = ctx.field_map.pixel_to_cm(px, py)
+        radius = max(radius, ((cx - center_x_cm) ** 2 + (cy - center_y_cm) ** 2) ** 0.5)
+    return radius

@@ -57,13 +57,17 @@ def drive_to_goal(ctx, obstacles=None):
                        obstacle_points=obstacle_points,
                        field_w=field_w, field_h=field_h)
 
-    # Trin 2: Koer direkte mod maalet. INGEN pathfinding her -- maalet ligger paa/
-    # uden for banden, og waypointet har allerede rettet os ind for en lige
-    # indkoersel. De sidste cm skal vaere en ren ligeud-koersel ind i maalet.
+    # Trin 2: Koer mod maalet -- ogsaa UDENOM forhindringer. Normalt ligger
+    # krydset langt fra maalet, saa pathfinderen ser fri sigtelinje og returnerer
+    # blot maalet (ren ligeud-indkoersel, som foer). Skulle krydset undtagelsesvis
+    # staa paa linjen waypoint->maal, laegger A* en omvej i stedet for at koere
+    # lige ind i det. Maalet selv klampes sikkert ind paa banen af pathfinderen.
     print("[KoerTilMaal] Trin 2: Maal ({:.1f}, {:.1f})".format(
         ctx.goal_a_cm[0], ctx.goal_a_cm[1]))
     _navigate_to_point(ctx, ctx.goal_a_cm[0], ctx.goal_a_cm[1],
-                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL")
+                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL",
+                       obstacle_points=obstacle_points,
+                       field_w=field_w, field_h=field_h)
 
     print("[KoerTilMaal] Maal naaet!")
 

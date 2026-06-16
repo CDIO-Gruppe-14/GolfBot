@@ -111,6 +111,28 @@ class TestPathfinder(unittest.TestCase):
         self.assertGreaterEqual(
             _min_clearance(path, start, obstacles), big_radius - 1.5)
 
+    def test_obstacle_radius_widens_clearance(self):
+        """En forhindring med egen radius (x, y, r) skal holdes laengere vaek end
+        et rent punkt: ruten holder safe_radius + obstacle_radius."""
+        start = (10, 60)
+        goal = (170, 60)
+        obs_r = 15.0
+        obstacles = [(90, 60, obs_r)]  # kryds med 15 cm fysisk radius
+
+        path = find_path(start, goal, obstacles, FIELD_W, FIELD_H, SAFE)
+
+        self.assertIsNotNone(path)
+        # Ruten maaler afstand til centrum; clearance skal nu vaere SAFE + obs_r
+        self.assertGreaterEqual(
+            _min_clearance(path, start, [(90, 60)]), SAFE + obs_r - 1.5)
+
+    def test_two_and_three_tuple_obstacles_are_compatible(self):
+        """(x, y) og (x, y, 0) skal give samme rute (bagudkompatibilitet)."""
+        start, goal = (10, 60), (170, 60)
+        p2 = find_path(start, goal, [(90, 60)], FIELD_W, FIELD_H, SAFE)
+        p3 = find_path(start, goal, [(90, 60, 0.0)], FIELD_W, FIELD_H, SAFE)
+        self.assertEqual(p2, p3)
+
     def test_adaptive_returns_none_when_truly_enclosed(self):
         """Indespaerret maal -> adaptiv giver (None, None), saa kalderen springer over."""
         goal = (90, 60)

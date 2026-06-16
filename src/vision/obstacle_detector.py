@@ -11,6 +11,9 @@ class ObstaclePosition:
     x: float
     y: float
     area: float = field(default=0.0, repr=False)
+    # Forhindringens bounding box i pixels (x, y, w, h) -- bruges af detektions-
+    # fasen til at maale krydsets fysiske udstraekning (radius) i cm.
+    bbox: tuple = field(default=None, repr=False)
 
 
 class ObstacleDetector:
@@ -44,5 +47,6 @@ class ObstacleDetector:
                     x=r.center[0],
                     y=r.center[1],
                     area=r.area,
+                    bbox=r.bbox,
                 ))
         return obstacles

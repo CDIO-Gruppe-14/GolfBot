@@ -29,16 +29,22 @@ Point = Tuple[float, float]
 
 def _build_tolerances(start: Point, goal: Point,
                       obstacles: Sequence[Point],
-                      safe_radius: float) -> List[Tuple[float, float, float]]:
+                      base_radius: float) -> List[Tuple[float, float, float]]:
     """For hver forhindring: hvor taet maa en celle komme.
 
-    Normalt safe_radius, men aldrig taettere end at start/maal selv kan rummes
-    (saa en bold lige ved krydset ikke goer ruten umulig)."""
+    base_radius er den faelles buffer (safe_radius + robot_radius). Oveni laegges
+    forhindringens EGEN fysiske radius (obs[2], hvis angivet), saa et stort kryds
+    holdes laengere vaek end et lille -- bufferen maales i stedet for at gaettes.
+    Aldrig taettere end at start/maal selv kan rummes (saa en bold lige ved krydset
+    ikke goer ruten umulig). Forhindringer kan vaere (x, y) eller (x, y, radius)."""
     tolerances = []
-    for ox, oy in obstacles:
+    for obs in obstacles:
+        ox, oy = obs[0], obs[1]
+        obs_r = obs[2] if len(obs) >= 3 else 0.0
+        eff = base_radius + obs_r
         dist_goal = math.hypot(goal[0] - ox, goal[1] - oy)
         dist_start = math.hypot(start[0] - ox, start[1] - oy)
-        allowed = max(0.0, min(safe_radius, dist_goal - 1.0, dist_start - 1.0))
+        allowed = max(0.0, min(eff, dist_goal - 1.0, dist_start - 1.0))
         tolerances.append((ox, oy, allowed))
     return tolerances
 
