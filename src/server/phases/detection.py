@@ -71,16 +71,11 @@ def detect_balls(ctx) -> Optional[List[Ball]]:
     return balls
 
 
-def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
-    """Find forhindringer (det Roede Kryds) og returner cm-koordinater + radius.
-
-    Hver forhindring returneres som (x_cm, y_cm, radius_cm), hvor radius_cm er
-    krydsets FYSISKE udstraekning fra centrum -- maalt ud fra bounding-box'en, saa
-    pathfinderen kan holde en buffer der svarer til korsets faktiske stoerrelse i
-    stedet for at antage et punkt. Falder tilbage til radius 0 hvis bbox mangler.
+def detect_obstacles(ctx) -> Optional[List[Tuple[float, float]]]:
+    """Find forhindringer (det Roede Kryds) og returner cm-koordinater.
 
     Returns:
-        Liste af (x, y, radius)-tupler (evt. tom), eller None ved kamerafejl.
+        Liste af (x, y)-tupler (evt. tom), eller None ved kamerafejl.
     """
     frame = _capture_frame(ctx)
     if frame is None:
@@ -89,40 +84,11 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
     obstacles_cm = []
     for o in ctx.obstacle_detector.find_obstacles(frame):
         ox, oy = ctx.field_map.pixel_to_cm(o.x, o.y)
-        radius = obstacle_radius_cm(ctx.field_map, o, ox, oy)
-        obstacles_cm.append((ox, oy, radius))
+        obstacles_cm.append((ox, oy))
 
     if obstacles_cm:
         print(f"[Detektion] Fundet {len(obstacles_cm)} forhindring(er) (Rødt Kryds):")
         for o in obstacles_cm:
-            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm, radius {o[2]:.1f} cm")
+            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm")
 
     return obstacles_cm
-
-
-def obstacle_radius_cm(field_map, obstacle, center_x_cm, center_y_cm) -> float:
-    """Maal krydsets fysiske radius (cm) ud fra dets bounding box.
-
-    Krydset er et '+': bbox'ens HJOERNER er tomme (ingen kryds der), saa de ville
-    overvurdere udstraekningen (halv diagonal). Den yderste kant er arm-spidserne,
-    som ligger i bbox'ens KANT-MIDTPUNKTER. Radius = stoerste afstand fra centrum
-    til et kant-midtpunkt = halv arm-bredde (fx 10 cm for et 20 cm kryds).
-
-    Perspektiv-transformen er ikke-lineaer, saa midtpunkterne konverteres til cm
-    foer afstanden maales (ingen direkte pixel->cm-skalering). Genbruges af
-    route_visualizer, saa plot og koersel maaler krydset ens."""
-    bbox = getattr(obstacle, "bbox", None)
-    if not bbox:
-        return 0.0
-    bx, by, bw, bh = bbox
-    edge_mids_px = [
-        (bx + bw / 2, by),          # top
-        (bx + bw / 2, by + bh),     # bund
-        (bx, by + bh / 2),          # venstre
-        (bx + bw, by + bh / 2),     # hoejre
-    ]
-    radius = 0.0
-    for px, py in edge_mids_px:
-        cx, cy = field_map.pixel_to_cm(px, py)
-        radius = max(radius, ((cx - center_x_cm) ** 2 + (cy - center_y_cm) ** 2) ** 0.5)
-    return radius

@@ -65,8 +65,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
     if obstacle_points:
         closest_obs = None
         min_dist = float('inf')
-        for obs in obstacle_points:
-            ox, oy = obs[0], obs[1]
+        for ox, oy in obstacle_points:
             dist = math.hypot(ball.x - ox, ball.y - oy)
             if dist < min_dist:
                 min_dist = dist

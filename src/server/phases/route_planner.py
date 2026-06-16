@@ -15,20 +15,13 @@ from typing import Deque, Dict, Iterable, List, Sequence, Set, Tuple
 from src.entities.ball import Ball
 
 
-def _normalize_obstacles(obstacles: Iterable) -> List[Tuple[float, float, float]]:
-    """Normaliser forhindringer til (x, y, radius)-cm-punkter.
-
-    radius = forhindringens fysiske udstraekning fra centrum (cm). Bevares fra
-    3-tupler (x, y, r) og fra objekter med et .radius-felt; ellers 0.0 (et rent
-    punkt -- bagudkompatibelt med gamle (x, y)-tupler)."""
+def _normalize_obstacles(obstacles: Iterable) -> List[Tuple[float, float]]:
     normalized = []
     for obstacle in obstacles or []:
         if isinstance(obstacle, (tuple, list)) and len(obstacle) >= 2:
-            radius = float(obstacle[2]) if len(obstacle) >= 3 else 0.0
-            normalized.append((float(obstacle[0]), float(obstacle[1]), radius))
+            normalized.append((float(obstacle[0]), float(obstacle[1])))
         elif hasattr(obstacle, "x") and hasattr(obstacle, "y"):
-            radius = float(getattr(obstacle, "radius", 0.0) or 0.0)
-            normalized.append((float(obstacle.x), float(obstacle.y), radius))
+            normalized.append((float(obstacle.x), float(obstacle.y)))
     return normalized
 
 # --- TRIN 1: A* STIFINDING ---
@@ -51,15 +44,11 @@ def a_star_distance(start: Ball, goal: Ball, obstacles: List[Tuple[float, float]
 
     # Forudberegn hvor tæt start/mål er på forhindringer, så vi kan tillade at køre derind
     obs_tolerances = []
-    for obs in obstacles:
-        ox, oy = obs[0], obs[1]
-        obs_r = obs[2] if len(obs) >= 3 else 0.0  # forhindringens fysiske radius
+    for ox, oy in obstacles:
         dist_goal = math.hypot(goal.x - ox, goal.y - oy)
         dist_start = math.hypot(start.x - ox, start.y - oy)
-        # Bufferen = sikkerhedszone + forhindringens egen udstraekning. Hvis bolden
-        # ligger 10 cm fra forhindringen, må vi køre ind til 9 cm fra den.
-        eff_radius = SAFE_RADIUS + obs_r
-        allowed_dist = max(0.0, min(eff_radius, dist_goal - 1.0, dist_start - 1.0))
+        # Hvis bolden ligger 10 cm fra forhindringen, må vi køre ind til 9 cm fra forhindringen
+        allowed_dist = max(0.0, min(SAFE_RADIUS, dist_goal - 1.0, dist_start - 1.0))
         obs_tolerances.append((ox, oy, allowed_dist))
 
     while open_set:
