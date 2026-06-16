@@ -101,19 +101,27 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float, float]]]:
 
 
 def _obstacle_radius_cm(ctx, obstacle, center_x_cm, center_y_cm) -> float:
-    """Maal krydsets fysiske radius (cm) fra dets bounding box.
+    """Maal krydsets fysiske radius (cm) ud fra dets bounding box.
 
-    Perspektiv-transformen er ikke-lineaer, saa en pixel-stoerrelse kan ikke
-    skaleres direkte til cm. I stedet konverteres bbox-hjoernerne til cm og den
-    stoerste afstand fra centrum til et hjoerne tages som radius (halv diagonal).
-    """
+    Krydset er et '+': bbox'ens HJOERNER er tomme (ingen kryds der), saa de ville
+    overvurdere udstraekningen (halv diagonal). Den yderste kant er arm-spidserne,
+    som ligger i bbox'ens KANT-MIDTPUNKTER. Radius = stoerste afstand fra centrum
+    til et kant-midtpunkt = halv arm-bredde (fx 10 cm for et 20 cm kryds).
+
+    Perspektiv-transformen er ikke-lineaer, saa midtpunkterne konverteres til cm
+    foer afstanden maales (ingen direkte pixel->cm-skalering)."""
     bbox = getattr(obstacle, "bbox", None)
     if not bbox:
         return 0.0
     bx, by, bw, bh = bbox
-    corners_px = [(bx, by), (bx + bw, by), (bx + bw, by + bh), (bx, by + bh)]
+    edge_mids_px = [
+        (bx + bw / 2, by),          # top
+        (bx + bw / 2, by + bh),     # bund
+        (bx, by + bh / 2),          # venstre
+        (bx + bw, by + bh / 2),     # hoejre
+    ]
     radius = 0.0
-    for px, py in corners_px:
+    for px, py in edge_mids_px:
         cx, cy = ctx.field_map.pixel_to_cm(px, py)
         radius = max(radius, ((cx - center_x_cm) ** 2 + (cy - center_y_cm) ** 2) ** 0.5)
     return radius
