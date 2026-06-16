@@ -86,6 +86,9 @@ def detect_obstacles(ctx) -> Optional[List[Tuple[float, float]]]:
         ox, oy = ctx.field_map.pixel_to_cm(o.x, o.y)
         obstacles_cm.append((ox, oy))
 
+    # Gem paa ctx saa drive_to_goal kan laese dem uden at faa dem som parameter.
+    ctx.obstacles = obstacles_cm
+
     if obstacles_cm:
         print(f"[Detektion] Fundet {len(obstacles_cm)} forhindring(er) (Rødt Kryds):")
         for o in obstacles_cm:

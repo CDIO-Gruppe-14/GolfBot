@@ -28,6 +28,10 @@ class GameContext:
 
         # Dynamisk navigation-state (opdateres under koersel)
         self.iteration = 0
+
+        # Seneste detekterede forhindringer (cm-punkter). Saettes af
+        # detect_obstacles og laeses af drive_to_goal til waypoint-undvigelse.
+        self.obstacles = []
         
         # Entities
         self.robot = robot

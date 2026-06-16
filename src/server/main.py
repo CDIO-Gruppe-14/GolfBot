@@ -168,7 +168,7 @@ def main():
             # Fase 5: Koer til maal
             # -----------------------------------------------------------
             print("\n>>> FASE 5: KOER TIL MAAL <<<")
-            drive_to_goal(ctx, obstacles)
+            drive_to_goal(ctx)
 
             # -----------------------------------------------------------
             # Fase 6: Aflevering

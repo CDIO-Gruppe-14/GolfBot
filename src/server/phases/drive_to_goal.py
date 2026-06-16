@@ -5,9 +5,13 @@ Navigerer robotten mod maalet via et waypoint
 for at sikre en lige indkoersel.
 
 Trin:
-  1. Koer til waypoint (punkt foran maalet)
+  1. Koer til waypoint (punkt foran maalet) -- UDENOM forhindringer via
+     A*-waypoints, saa robotten ikke rammer det Roede Kryds paa vejen.
   2. Koer direkte mod maalet
   3. Stop naar robotten er inden for DELIVER_DISTANCE_CM
+
+Forhindringerne laeses fra ctx.obstacles (sat af detect_obstacles), saa fasen
+kun behoever ctx-parameteren.
 """
 
 import time
@@ -29,7 +33,7 @@ from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_CM,
                     WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM)
 
 
-def drive_to_goal(ctx, obstacles=None):
+def drive_to_goal(ctx):
     """
     Fase 5: Koer mod maal med waypoint-approach.
 
@@ -38,14 +42,15 @@ def drive_to_goal(ctx, obstacles=None):
     2. Naar waypoint er naaet, koer direkte mod maalet
     3. Stop naar robotten er inden for DELIVER_DISTANCE_CM
 
+    Forhindringerne tages fra ctx.obstacles.
+
     Args:
-        ctx: GameContext med maalkoordinater og navigation-state
-        obstacles: Liste af forhindringer (cm) til at laegge ruten udenom.
+        ctx: GameContext med maalkoordinater, forhindringer og navigation-state
     """
     print("\n" + "=" * 60)
     print("[KoerTilMaal] Starter navigation mod maal")
 
-    obstacle_points = _normalize_obstacles(obstacles)
+    obstacle_points = _normalize_obstacles(ctx.obstacles)
     field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120))
 
     # Trin 1: Koer til waypoint -- med forhindrings-undvigelse. Waypointet ligger
