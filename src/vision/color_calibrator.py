@@ -66,6 +66,25 @@ class ColorCalibrator:
         import os
         path = os.path.join(PROFILES_DIR, f"{self.profile_name}.json")
         with open(path, "w") as f:
+                    
+        # Bevar eksisterende formfiltre (f.eks. til orange, hvid eller roed)
+            if os.path.exists(path):
+                try:
+                    with open(path, "r") as f:
+                        existing_profile = json.load(f)
+                        for key in ["min_circularity", "max_aspect_ratio", "min_area", "max_area"]:
+                            if key in existing_profile:
+                                profile[key] = existing_profile[key]
+                except Exception:
+                    pass
+
+        # Særlige standardværdier hvis de ikke findes i forvejen
+        if self.profile_name in ["orange", "hvid"] and "min_circularity" not in profile:
+            profile["min_circularity"] = 0.5
+            profile["max_aspect_ratio"] = 1.5
+        elif self.profile_name == "roed" and "min_circularity" not in profile:
+            profile["min_circularity"] = None
+            profile["max_aspect_ratio"] = None
             json.dump(profile, f, indent=2)
         print(f"  Profil gemt: {path}")
 

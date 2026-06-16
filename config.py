@@ -104,7 +104,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -206,10 +206,11 @@ GOAL_B_CM = (90.0, 120.0)  # Standard placering bund midt
 # ===========================================================================
 # 8. ARUCO MARKØRER
 # ===========================================================================
-import cv2
-
-# Dictionary-type (4×4 = mindst grid -> bedst detektion)
-ARUCO_DICT = cv2.aruco.DICT_4X4_50
+try:
+    import cv2
+    ARUCO_DICT = cv2.aruco.DICT_4X4_50
+except ImportError:
+    ARUCO_DICT = 0  # Fallback: cv2.aruco.DICT_4X4_50 is 0
 
 # Robot-markør
 ROBOT_MARKER_ID = 42
