@@ -78,7 +78,7 @@ class ColorCalibrator:
                 pass
 
         # Særlige standardværdier hvis de ikke findes i forvejen
-        if self.profile_name in ["orange", "white"] and "min_circularity" not in profile:
+        if self.profile_name in ["orange", "hvid"] and "min_circularity" not in profile:
             profile["min_circularity"] = 0.5
             profile["max_aspect_ratio"] = 1.5
         elif self.profile_name == "roed" and "min_circularity" not in profile:

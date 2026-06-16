@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.4"
+ROBOT_IP    = "172.20.10.12"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -47,7 +47,7 @@ RETRY_DELAY_SEC = 2
 # Brugt i: src/robot/motor_controller.py  (linje 6-9)
 
 WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
-AXLE_TRACK_CM      = 20.0    # Afstand mellem hjulcentrene i cm
+AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
 MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
 
 # Bevægelses-ports
@@ -165,7 +165,7 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 5.0
+MIN_TURN_DEGREES = 1.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
