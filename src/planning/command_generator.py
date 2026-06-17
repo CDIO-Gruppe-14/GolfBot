@@ -35,10 +35,10 @@ def compute_turn_and_distance(robot_x, robot_y, robot_heading, target_x, target_
     return round(turn_angle, 1), round(distance, 1)
 
 
-def compute_angle_to_ball(robot_x, robot_y, ball_x, ball_y):
+def compute_angle_to_target(robot_x, robot_y, target_x, target_y):
     """Beregn vinkel fra robot til bold i grader (0 = oest, 90 = nord)."""
-    dx = ball_x - robot_x
-    dy = ball_y - robot_y
+    dx = target_x - robot_x
+    dy = target_y - robot_y
     return math.degrees(math.atan2(dy, dx))
 
 
@@ -49,20 +49,24 @@ def compute_distance(robot_x, robot_y, ball_x, ball_y):
     return math.hypot(dx, dy)
 
 
-def compute_turn_only(robot_x, robot_y, robot_heading, ball_x, ball_y,
+def compute_turn_only(robot_x, robot_y, robot_heading, target_x, target_y,
                       front_offset_cm=ROBOT_FRONT_CM):
     """
-    Beregn KUN drejning. Returnerer (turn_angle, distance).
-    Kalder IKKE forward -- det goer serveren separat efter re-evaluering.
+    Beregn KUN drejning. Returnerer (turn_angle)
     """
-    return compute_turn_and_distance(
-        robot_x,
-        robot_y,
-        robot_heading,
-        ball_x,
-        ball_y,
-        front_offset_cm=front_offset_cm,
-    )
+    front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
+    
+    dx = target_x - front_x
+    dy = target_y - front_y
+
+    target_angle = math.degrees(math.atan2(dy, dx))
+    
+    if robot_heading is None:
+        turn_angle = target_angle
+    else:
+        turn_angle = (target_angle - robot_heading + 180) % 360 - 180
+
+    return round(turn_angle, 1)
 
 
 def compute_forward_step(distance):

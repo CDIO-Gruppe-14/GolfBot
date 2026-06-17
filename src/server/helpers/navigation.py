@@ -55,11 +55,4 @@ def execute_forward(ctx, distance):
         return False
     time.sleep(0.3)
 
-    # Opdater heading med kamera
-    if detect_robot(ctx):
-        print("[{}] Heading fra markoer: {:.1f} grader".format(
-            ctx.iteration, ctx.robot.heading))
-    else:
-        print("[{}] ADVARSEL: Kunne ikke finde robot efter FORWARD!".format(
-            ctx.iteration))
     return True

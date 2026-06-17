@@ -23,9 +23,12 @@ from src.server.helpers.command_utils import send_and_verify
 from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
-from src.planning.command_generator import compute_turn_only
+from src.planning.command_generator import compute_distance, compute_turn_and_distance, compute_turn_only
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
+
+from src.planning.command_generator import calculate_approach_point
+from src.planning.command_generator import calculate_wall_approach_point
 
 from src.server.phases.detection import detect_robot
 
@@ -41,7 +44,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
     Navigerer mod boldens kendte cm-position med loebende
     kamera-feedback for at korrigere retning.
-    
+
     Args:
         ctx: GameContext med hardware og navigation-state
         ball: (x_cm, y_cm, color) tuple -- maalet
@@ -69,7 +72,6 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
         # Hvis bolden er inden for sikkerhedszonen af en forhindring
         if closest_obs and min_dist <= OBSTACLE_SAFE_RADIUS_CM:
-            from src.planning.command_generator import calculate_approach_point
             app_x, app_y = calculate_approach_point(ball.x, ball.y, closest_obs[0], closest_obs[1], approach_dist_cm=OBSTACLE_SAFE_RADIUS_CM)
             target_x, target_y = app_x, app_y
             approaching = True
@@ -79,7 +81,6 @@ def drive_to_ball(ctx, ball, obstacles=None):
     # vaegnormalen, saa robotten ikke koerer ind i banden under opsamling (#3).
     # Banderne er kendt fra ArUco-banen (cm-koords 0..field_w / 0..field_h).
     if not approaching:
-        from src.planning.command_generator import calculate_wall_approach_point
         wall_app = calculate_wall_approach_point(
             ball.x, ball.y, field_w, field_h,
             wall_safe_dist_cm=WALL_SAFE_RADIUS_CM,
@@ -108,7 +109,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
             continue
 
         # --- Beregn drejning og afstand ---
-        turn_angle, distance = compute_turn_only(
+        turn_angle, distance = compute_turn_and_distance(
             ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
             front_offset_cm=ROBOT_FRONT_CM)
 
@@ -131,25 +132,25 @@ def drive_to_ball(ctx, ball, obstacles=None):
             # Endelig vinkel-verifikation med et FRISK billede (center-baseret)
             # foer vi godkender at vi staar overfor bolden -- TURN er upraecis,
             # saa vi stoler ikke blindt paa at den forrige drejning ramte.
-            ok, fresh_turn, _ = _verify_facing_ball(ctx, target_x, target_y)
+            ok, fresh_turn_angle, _ = _verify_facing_ball(ctx, target_x, target_y)
             if ok:
                 print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
                     ctx.iteration, distance))
                 return True
-            if fresh_turn is None:
+            if fresh_turn_angle is None:
                 continue  # kamerafejl -- tag nyt billede
             print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
-                ctx.iteration, fresh_turn))
-            if not execute_turn(ctx, fresh_turn):
+                ctx.iteration, fresh_turn_angle))
+            if not execute_turn(ctx, fresh_turn_angle):
                 return False
             continue
 
-        # --- PRAECISIONS-TILNAERMELSE (taet paa bold) ---
-        if distance < APPROACH_DISTANCE_CM:
-            result = _precision_approach(ctx, turn_angle, distance, target_x, target_y)
-            if result:
-                return True
-            continue
+        # # --- PRAECISIONS-TILNAERMELSE (taet paa bold) ---
+        # if distance < APPROACH_DISTANCE_CM:
+        #     result = _precision_approach(ctx, turn_angle, distance, target_x, target_y)
+        #     if result:
+        #         return True
+        #     continue
 
         # --- NORMAL NAVIGATION (path-following) ---
         # Vi planlaegger den praecise A*-rute udenom forhindringerne EEN gang og
@@ -184,7 +185,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         if route:
             while len(route) > 1 and math.hypot(
                     ctx.robot.x - route[0][0],
-                    ctx.robot.y - route[0][1]) <= WAYPOINT_REACHED_CM:
+                    ctx.robot.y - route[0][1]) <= 2:
                 rx, ry = route.pop(0)
                 print("[{}] Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, rx, ry, len(route)))
@@ -199,11 +200,11 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # robotten roterer i ring. Front-offset bruges KUN til det endelige maal
         # (bolden), saa opsamleren rammer den.
         if (sub_x, sub_y) != (target_x, target_y):
-            turn_angle, distance = compute_turn_only(
+            turn_angle = compute_turn_only(
                 ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
                 front_offset_cm=0.0)
-            print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}  Dist: {:.1f}".format(
-                ctx.iteration, sub_x, sub_y, turn_angle, distance))
+            print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}".format(
+                ctx.iteration, sub_x, sub_y, turn_angle))
 
         # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:
@@ -235,12 +236,10 @@ def _verify_facing_ball(ctx, target_x, target_y):
     # bolden): smaa heading-fejl giver store udsving -> robotten retter for
     # meget og rammer skaevt. (Maalet rammes praecist fordi det tilnaermes paa
     # lang afstand, hvor front-offset er ubetydelig.)
-    turn_angle, _ = compute_turn_only(
+    turn_angle = compute_turn_only(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
         front_offset_cm=0.0)
-    _, distance = compute_turn_only(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
-    return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle, distance
+    return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle
 
 
 def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
