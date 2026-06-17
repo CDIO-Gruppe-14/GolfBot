@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.12"
+ROBOT_IP    = "172.20.10.2"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
