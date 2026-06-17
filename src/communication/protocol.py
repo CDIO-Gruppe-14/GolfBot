@@ -26,7 +26,7 @@ DONE  = "DONE"
 ERROR = "ERROR"
 
 
-def encode_command(cmd: str, value: float = None) -> str:
+def encode_command(cmd: str, speed: float = None, value: float = None) -> str:
     """
     Formatter en kommando til afsendelse over socket.
 
@@ -36,7 +36,7 @@ def encode_command(cmd: str, value: float = None) -> str:
         encode_command("HEADING")        →  "HEADING\\n"
     """
     if value is not None:
-        return "{} {}\n".format(cmd, value)
+        return "{} {} {}\n".format(cmd, speed, value)
     return "{}\n".format(cmd)
 
 

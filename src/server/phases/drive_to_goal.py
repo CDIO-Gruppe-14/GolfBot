@@ -22,11 +22,11 @@ from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
 from src.server.phases.detection import detect_robot
-from src.planning.command_generator import compute_turn_only
+from src.planning.command_generator import compute_turn_only, compute_turn_and_distance
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
-from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, ROBOT_FRONT_CM,
-                    WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM)
+from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, PRECISION_TURN_SPEED, ROBOT_FRONT_CM,
+                    WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED)
 
 
 def drive_to_goal(ctx, obstacles=None):
@@ -86,7 +86,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
                 ctx.iteration, label))
             continue
 
-        turn_angle, distance = compute_turn_only(
+        turn_angle, distance = compute_turn_and_distance(
             ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
             front_offset_cm=ROBOT_FRONT_CM)
 
@@ -143,8 +143,8 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
 
         # Drej
         if abs(turn_angle) > MIN_TURN_DEGREES:
-            execute_turn(ctx, turn_angle)
+            execute_turn(ctx, PRECISION_TURN_SPEED, turn_angle)
             continue
 
         # Fremad
-        execute_forward(ctx, distance)
+        execute_forward(ctx, PRECISION_TURN_SPEED, distance)

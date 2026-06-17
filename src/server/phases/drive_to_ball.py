@@ -121,17 +121,17 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # --- BOLD NAAET ---
         # Stop kun naar vi baade er taet nok paa og vender direkte mod bolden.
         if distance <= STOP_DISTANCE_CM:
+            print(f"[{ctx.iteration}] Robot indenfor stopafstand til approach point.")
+            target_x, target_y = ball.x, ball.y
             if approaching:
                 print(f"[{ctx.iteration}] Approach point naaet! Skifter maal direkte mod bolden.")
                 approaching = False
-                target_x, target_y = ball.x, ball.y
                 route = []  # spring A* over og koer direkte (A* afviser maal i safety-zones)
-                continue
                 
             # Endelig vinkel-verifikation med et FRISK billede (center-baseret)
             # foer vi godkender at vi staar overfor bolden -- TURN er upraecis,
             # saa vi stoler ikke blindt paa at den forrige drejning ramte.
-            ok, fresh_turn_angle, _ = _verify_facing_ball(ctx, target_x, target_y)
+            ok, fresh_turn_angle = _verify_facing_ball(ctx, target_x, target_y)
             if ok:
                 print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
                     ctx.iteration, distance))
@@ -140,7 +140,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 continue  # kamerafejl -- tag nyt billede
             print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
                 ctx.iteration, fresh_turn_angle))
-            if not execute_turn(ctx,TURN_SPEED, fresh_turn_angle):
+            if not execute_turn(ctx,PRECISION_TURN_SPEED, fresh_turn_angle):
                 return False
             continue
 
@@ -184,7 +184,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         if route:
             while len(route) > 1 and math.hypot(
                     ctx.robot.x - route[0][0],
-                    ctx.robot.y - route[0][1]) <= 2:
+                    ctx.robot.y - route[0][1]) <= 5.0:
                 rx, ry = route.pop(0)
                 print("[{}] Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, rx, ry, len(route)))
@@ -198,21 +198,20 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # waypointet, mens fronten satte sig oven paa det -> vild pejling og
         # robotten roterer i ring. Front-offset bruges KUN til det endelige maal
         # (bolden), saa opsamleren rammer den.
-        if (sub_x, sub_y) != (target_x, target_y):
-            turn_angle = compute_turn_only(
-                ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
-                front_offset_cm=0.0)
-            print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}".format(
-                ctx.iteration, sub_x, sub_y, turn_angle))
+        turn_angle = compute_turn_only(
+            ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
+            front_offset_cm=0.0)
+        print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}".format(
+            ctx.iteration, sub_x, sub_y, turn_angle))
 
         # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:
-            if not execute_turn(ctx, turn_angle):
+            if not execute_turn(ctx,TURN_SPEED ,turn_angle):
                 return False
             continue
 
-        # Koer fremad
-        if not execute_forward(ctx,MOTOR_SPEED, distance):
+        distance = compute_distance(ctx.robot.x, ctx.robot.y, sub_x, sub_y)
+        if not execute_forward(ctx,MOTOR_SPEED, distance - ROBOT_FRONT_CM):
             return False
 
 
@@ -227,7 +226,7 @@ def _verify_facing_ball(ctx, target_x, target_y):
     PRECISION_MIN_TURN_DEGREES. Ved kamerafejl: (False, None, None).
     """
     if not detect_robot(ctx):
-        return False, None, None
+        return False, None
     # VINKEL: center-baseret. Bolden skal ligge paa robottens koerselsakse
     # (linjen gennem center og front langs heading), saa den glider ind i
     # opsamleren naar vi koerer ligeud. Front-baseret vinkel er daarligt

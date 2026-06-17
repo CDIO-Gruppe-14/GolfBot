@@ -50,6 +50,7 @@ WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
 
 TURN_SPEED         = 30
+MOTOR_SPEED        = 30
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -84,7 +85,7 @@ GYRO_PORT = "2"
 # Maal afstanden fra markoerens midte ud til hver kant med en lineal.
 # Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
 # og bander -- ikke kun markoer-centret.
-ROBOT_FRONT_CM = 12.0   # markoer-center -> forreste kant (naese/opsamler)
+ROBOT_FRONT_CM = 17.0   # markoer-center -> forreste kant (naese/opsamler)
 ROBOT_BACK_CM  = 20.0   # markoer-center -> bageste kant
 ROBOT_LEFT_CM  = 11.0    # markoer-center -> venstre kant
 ROBOT_RIGHT_CM = 11.0    # markoer-center -> hoejre kant
@@ -167,7 +168,7 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 1.0
+MIN_TURN_DEGREES = 5.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
@@ -188,8 +189,7 @@ STOP_DISTANCE_CM = 4.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 1.0
-
+PRECISION_MIN_TURN_DEGREES = 1.5
 PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
