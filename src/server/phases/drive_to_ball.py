@@ -41,11 +41,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
     Navigerer mod boldens kendte cm-position med loebende
     kamera-feedback for at korrigere retning.
-
-    Forberedt til forhindringskorrektion:
-      Naar A* er implementeret kan ruten laegges uden om forhindringer.
-      Se TODO-kommentar i navigation-loopet.
-
+    
     Args:
         ctx: GameContext med hardware og navigation-state
         ball: (x_cm, y_cm, color) tuple -- maalet
@@ -129,7 +125,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 print(f"[{ctx.iteration}] Approach point naaet! Skifter maal direkte mod bolden.")
                 approaching = False
                 target_x, target_y = ball.x, ball.y
-                route = None  # nyt maal -> planlaeg ruten paa ny
+                route = []  # spring A* over og koer direkte (A* afviser maal i safety-zones)
                 continue
                 
             # Endelig vinkel-verifikation med et FRISK billede (center-baseret)
