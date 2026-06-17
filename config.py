@@ -49,6 +49,8 @@ RETRY_DELAY_SEC = 2
 WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
 
+TURN_SPEED         = 30
+
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
 MOTOR_LEFT_PORT  = "B"   # Port for venstre motor
@@ -58,7 +60,8 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
 COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
-COLLECTION_SPEED     = 15        # Langsom koerselshastighed under opsamling (0-100)
+
+SPEED_UNDER_COLLECTION = 30
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
@@ -186,6 +189,8 @@ STOP_DISTANCE_CM = 4.0
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
 PRECISION_MIN_TURN_DEGREES = 1.0
+
+PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
