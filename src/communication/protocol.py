@@ -57,7 +57,9 @@ def decode_command(raw):
         return (ERROR, None)
     cmd = parts[0].upper()
     try:
-        value = float(parts[1]) if len(parts) > 1 else None
+        speed = float(parts[1]) if len(parts) > 1 else None
+        value = float(parts[2]) if len(parts) > 2 else None
     except (ValueError, IndexError):
         value = None
-    return cmd, value
+        speed = None
+    return cmd, value, speed

@@ -48,16 +48,6 @@ RETRY_DELAY_SEC = 2
 
 WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
-MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
-TURN_SLOW_THRESHOLD_DEGREES = 15.0  # Drejninger under denne vinkel bruger lavere hastighed
-TURN_SLOW_SPEED    = 15      # Drejehastighed i procent for små drejninger
-
-
-def get_turn_speed(degrees):
-    """Returner motorhastighed for en TURN-kommando."""
-    if abs(degrees) < TURN_SLOW_THRESHOLD_DEGREES:
-        return TURN_SLOW_SPEED
-    return MOTOR_SPEED
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -113,7 +103,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
