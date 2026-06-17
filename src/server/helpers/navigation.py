@@ -24,11 +24,11 @@ from src.server.phases.detection import detect_robot
 # calibrate_heading er fjernet - ArUco markør giver altid heading
 
 
-def execute_turn(ctx, turn_angle):
+def execute_turn(ctx, speed, turn_angle):
     """Udforer drejning og verificerer heading med kamera.
     Returnerer True ved succes, False ved fejl."""
     print("[{}] TURN {:.1f}".format(ctx.iteration, turn_angle))
-    if send_and_verify(ctx.client, "TURN", turn_angle) is None:
+    if send_and_verify(ctx.client, "TURN", speed, turn_angle ) is None:
         return False
 
     # Verificer heading med kamera
@@ -42,13 +42,13 @@ def execute_turn(ctx, turn_angle):
     return True
 
 
-def execute_forward(ctx, distance):
+def execute_forward(ctx, speed, distance):
     """Koer fremad og opdater heading fra kamera.
     Returnerer True ved succes, False ved fejl."""
     step = compute_forward_step(distance)
     print("[{}] FORWARD {}".format(ctx.iteration, step))
 
-    if send_and_verify(ctx.client, "FORWARD", step) is None:
+    if send_and_verify(ctx.client, "FORWARD", speed, step) is None:
         return False
     time.sleep(0.3)
 

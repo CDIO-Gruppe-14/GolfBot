@@ -32,10 +32,9 @@ from src.planning.command_generator import calculate_wall_approach_point
 
 from src.server.phases.detection import detect_robot
 
-from config import (MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM,
+from config import (MIN_TURN_DEGREES, PRECISION_TURN_SPEED, STOP_DISTANCE_CM,
                     PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_CM,
-                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM,
-                    WAYPOINT_REACHED_CM)
+                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, MOTOR_SPEED)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -141,7 +140,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 continue  # kamerafejl -- tag nyt billede
             print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
                 ctx.iteration, fresh_turn_angle))
-            if not execute_turn(ctx, fresh_turn_angle):
+            if not execute_turn(ctx,TURN_SPEED, fresh_turn_angle):
                 return False
             continue
 
@@ -213,7 +212,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
             continue
 
         # Koer fremad
-        if not execute_forward(ctx, distance):
+        if not execute_forward(ctx,MOTOR_SPEED, distance):
             return False
 
 
@@ -255,7 +254,7 @@ def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
     if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
         print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
-        if send_and_verify(ctx.client, "TURN", turn_angle) is None:
+        if send_and_verify(ctx.client, "TURN",PRECISION_TURN_SPEED, turn_angle) is None:
             return False
         time.sleep(0.3)
         detect_robot(ctx)
