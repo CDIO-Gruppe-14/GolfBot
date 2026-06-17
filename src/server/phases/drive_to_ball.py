@@ -32,7 +32,7 @@ from src.server.phases.detection import detect_robot
 from config import (MIN_TURN_DEGREES, APPROACH_DISTANCE_CM, STOP_DISTANCE_CM,
                     PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_CM,
                     OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM,
-                    WAYPOINT_REACHED_CM)
+                    WAYPOINT_REACHED_CM, get_turn_speed)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -253,9 +253,12 @@ def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
     # _verify_facing_ball). Paa kort afstand giver kamera-stoej store
     # vinkelfejl, saa vi bruger en hoejere threshold end normal navigation.
     turn_angle, _ = compute_turn_only(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
+        front_offset_cm=0.0)
     if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
-        print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
+        turn_speed = get_turn_speed(turn_angle)
+        print("[{}] PRECISION TURN {:.1f} (speed {}%)".format(
+            ctx.iteration, turn_angle, turn_speed))
         if send_and_verify(ctx.client, "TURN", turn_angle) is None:
             return False
         time.sleep(0.3)
@@ -270,8 +273,9 @@ def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
     if not ok:
         if fresh_turn is None:
             return False  # kamerafejl -- proev igen
-        print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer foer fremkoersel".format(
-            ctx.iteration, fresh_turn))
+        turn_speed = get_turn_speed(fresh_turn)
+        print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer foer fremkoersel (speed {}%)".format(
+            ctx.iteration, fresh_turn, turn_speed))
         if send_and_verify(ctx.client, "TURN", fresh_turn) is None:
             return False
         time.sleep(0.3)

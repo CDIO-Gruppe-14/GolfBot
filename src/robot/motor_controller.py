@@ -4,7 +4,8 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import WHEEL_DIAMETER_CM, AXLE_TRACK_CM, MOTOR_SPEED, MOTOR_LEFT_PORT, MOTOR_RIGHT_PORT
+from config import (WHEEL_DIAMETER_CM, AXLE_TRACK_CM, MOTOR_SPEED,
+                    MOTOR_LEFT_PORT, MOTOR_RIGHT_PORT, get_turn_speed)
 
 from ev3dev2.motor import LargeMotor, MoveTank, SpeedPercent
 
@@ -72,12 +73,15 @@ class MotorController:
         """Drej en vilkaarlig vinkel paa stedet. Positiv=hoejre, negativ=venstre."""
         arc_length = abs(degrees) / 360.0 * math.pi * AXLE_TRACK_CM
         rotations  = arc_length / WHEEL_CIRCUMFERENCE_CM
+        turn_speed = get_turn_speed(degrees)
+        print("TURN {:.1f} grader | speed {}% | rotations {:.3f}".format(
+            degrees, turn_speed, rotations))
         if degrees > 0:
             self.tank.on_for_rotations(
-                SpeedPercent(MOTOR_SPEED), SpeedPercent(-MOTOR_SPEED), rotations)
+                SpeedPercent(turn_speed), SpeedPercent(-turn_speed), rotations)
         else:
             self.tank.on_for_rotations(
-                SpeedPercent(-MOTOR_SPEED), SpeedPercent(MOTOR_SPEED), rotations)
+                SpeedPercent(-turn_speed), SpeedPercent(turn_speed), rotations)
 
     def stop(self):
         """Stop begge motorer."""

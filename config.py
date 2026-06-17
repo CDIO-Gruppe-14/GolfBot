@@ -49,6 +49,15 @@ RETRY_DELAY_SEC = 2
 WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
 MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
+TURN_SLOW_THRESHOLD_DEGREES = 15.0  # Drejninger under denne vinkel bruger lavere hastighed
+TURN_SLOW_SPEED    = 15      # Drejehastighed i procent for små drejninger
+
+
+def get_turn_speed(degrees):
+    """Returner motorhastighed for en TURN-kommando."""
+    if abs(degrees) < TURN_SLOW_THRESHOLD_DEGREES:
+        return TURN_SLOW_SPEED
+    return MOTOR_SPEED
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -242,4 +251,3 @@ WALL_SAFE_RADIUS_CM = 15.0
 FIELD_BORDER_MARGIN_PX = 50
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
-
