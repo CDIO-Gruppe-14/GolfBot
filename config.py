@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.12"
+ROBOT_IP    = "172.20.10.2"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -48,7 +48,6 @@ RETRY_DELAY_SEC = 2
 
 WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
-MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
 
 TURN_SPEED         = 30
 
@@ -107,7 +106,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -247,4 +246,3 @@ WALL_SAFE_RADIUS_CM = 15.0
 FIELD_BORDER_MARGIN_PX = 50
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
-

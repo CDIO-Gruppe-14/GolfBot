@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 from src.server.helpers.command_utils import send_and_verify
 from src.planning.command_generator import compute_forward_step
 from src.server.phases.detection import detect_robot
+from config import get_turn_speed
 
 
 # calibrate_heading er fjernet - ArUco markør giver altid heading
