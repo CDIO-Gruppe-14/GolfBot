@@ -236,7 +236,8 @@ def _verify_facing_ball(ctx, target_x, target_y):
     # lang afstand, hvor front-offset er ubetydelig.)
     turn_angle, distance = compute_turn_and_distance(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-        front_offset_cm=ROBOT_FRONT_CM)
+        front_offset_cm=0.0)
+        
     return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle
 
 
