@@ -234,7 +234,7 @@ def _verify_facing_ball(ctx, target_x, target_y):
     # bolden): smaa heading-fejl giver store udsving -> robotten retter for
     # meget og rammer skaevt. (Maalet rammes praecist fordi det tilnaermes paa
     # lang afstand, hvor front-offset er ubetydelig.)
-    turn_angle = compute_turn_only(
+    turn_angle, distance = compute_turn_and_distance(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
         front_offset_cm=0.0)
         

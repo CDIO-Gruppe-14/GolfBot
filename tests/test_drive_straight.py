@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import ARUCO_DICT, ROBOT_IP, ROBOT_MARKER_ID
+from config import ARUCO_DICT, CAMERA_INDEX, MOTOR_SPEED, ROBOT_IP, ROBOT_MARKER_ID
 from src.communication.connection import PCClient
 from src.entities.robot import Robot
 from src.server.helpers.camera_utils import get_fresh_frame
@@ -76,10 +76,22 @@ class TestRobotDriveStraight(unittest.TestCase):
             if camera:
                 camera.release()
 
+    def _assert_robot_detected(self, label):
+        if detect_robot(self.ctx):
+            return
+
+        self.fail(
+            "Robotten blev ikke fundet {}. Tjek at robotmarkoer ID {} er synlig "
+            "i kamera index {}, at markoeren ikke er daekket/reflekterer lys, "
+            "og at robotten bruger samme ArUco dictionary som banen.".format(
+                label, ROBOT_MARKER_ID, CAMERA_INDEX
+            )
+        )
+
     def _run_drive_straight_test(self, distance_cm, tolerance_cm):
         settle_sec = float(os.getenv("ROBOT_DRIVE_SETTLE_SEC", "2.0"))
 
-        self.assertTrue(detect_robot(self.ctx), "Robotten blev ikke fundet foer FORWARD")
+        self._assert_robot_detected("foer FORWARD")
         start_x = self.ctx.robot.x
         start_y = self.ctx.robot.y
         self.assertIsNotNone(start_x, "Robot-x var None foer FORWARD")
@@ -91,13 +103,13 @@ class TestRobotDriveStraight(unittest.TestCase):
             )
         )
         self.assertIsNotNone(
-            send_and_verify(self.client, "FORWARD", distance_cm),
+            send_and_verify(self.client, "FORWARD", MOTOR_SPEED, distance_cm),
             "EV3 svarede ikke DONE paa FORWARD",
         )
 
         time.sleep(settle_sec)
 
-        self.assertTrue(detect_robot(self.ctx), "Robotten blev ikke fundet efter FORWARD")
+        self._assert_robot_detected("efter FORWARD")
         end_x = self.ctx.robot.x
         end_y = self.ctx.robot.y
         

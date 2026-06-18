@@ -46,8 +46,8 @@ RETRY_DELAY_SEC = 2
 # ===========================================================================
 # Brugt i: src/robot/motor_controller.py  (linje 6-9)
 
-WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
-AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
+WHEEL_DIAMETER_CM  = 7    # Hjuldiameter i cm  (mål dit hjul med en lineal)
+AXLE_TRACK_CM      = 19.5    # Afstand mellem hjulcentrene i cm
 
 TURN_SPEED         = 30
 MOTOR_SPEED        = 30
