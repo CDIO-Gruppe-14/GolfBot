@@ -18,41 +18,42 @@ Fremgangsmaade:
     5. Tryk 'r' for at nulstille og maale igen, eller 'q' / ESC for at afslutte.
 
 Hvad testen validerer:
-    - Kameraet leverer et gyldigt frame.
-    - FieldMap kan beregne en perspektiv-transformation (ArUco eller gemt kalibrering).
-    - pixel_to_cm() giver en afstand der stemmer med den fysisk maalte afstand.
+    - Kameraet leverer et gyldigt frame (via get_fresh_frame).
+    - FieldMap.pixel_to_cm() kan konvertere pixelkoordinater til cm.
+    - compute_distance() giver en afstand der stemmer med den fysisk maalte afstand.
       Brug en lineal paa banen og sammenlign med det rapporterede cm-tal.
 """
 
 import os
 import sys
-import math
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import cv2
 
-from config import ARUCO_DICT, CAMERA_INDEX
+from config import ARUCO_DICT, CAMERA_INDEX, FIELD_SIZE_CM
 from src.vision.aruco_detector import ArucoDetector
 from src.vision.camera import RobotCamera
 from src.vision.field_map import FieldMap
+from src.planning.command_generator import compute_distance
+from src.server.helpers.camera_utils import get_fresh_frame
 
 
 # ---------------------------------------------------------------------------
-# Hjælpefunktioner
+# Hjælpefunktioner  (delegerer til systemets egne metoder)
 # ---------------------------------------------------------------------------
 
 def _pixel_distance(p1, p2):
-    """Euklidisk afstand i pixels mellem to (x, y)-punkter."""
-    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+    """Pixel-afstand via systemets compute_distance()."""
+    return compute_distance(p1[0], p1[1], p2[0], p2[1])
 
 
 def _cm_distance(field_map, p1, p2):
-    """Afstand i centimeter mellem to pixel-koordinater via FieldMap."""
+    """Cm-afstand: konverterer via FieldMap.pixel_to_cm() og maaler med compute_distance()."""
     x1_cm, y1_cm = field_map.pixel_to_cm(*p1)
     x2_cm, y2_cm = field_map.pixel_to_cm(*p2)
-    return math.hypot(x2_cm - x1_cm, y2_cm - y1_cm)
+    return compute_distance(x1_cm, y1_cm, x2_cm, y2_cm)
 
 
 def _draw_overlay(frame, points, px_dist=None, cm_dist=None):
@@ -164,8 +165,9 @@ class TestCameraDistance(unittest.TestCase):
         aruco = ArucoDetector(ARUCO_DICT)
         cls.field_map = FieldMap(aruco_detector=aruco)
 
-        # Forsøg live ArUco-kalibrering fra foerste frame
-        frame = cls.camera.get_frame()
+        # Forsøg live ArUco-kalibrering fra et friskt frame (get_fresh_frame
+        # flusher kamera-bufferen saa vi ikke faar et forældet billede)
+        frame = get_fresh_frame(cls.camera)
         if frame is None:
             cls.camera.release()
             raise AssertionError(
@@ -191,11 +193,11 @@ class TestCameraDistance(unittest.TestCase):
     # Enhedstest 1: kameraet leverer et gyldigt frame
     # ------------------------------------------------------------------
     def test_01_camera_delivers_frame(self):
-        """Kameraet skal kunne levere mindst ét gyldigt frame."""
-        frame = self.camera.get_frame()
+        """get_fresh_frame() skal levere et gyldigt, friskt frame fra kameraet."""
+        frame = get_fresh_frame(self.camera)
         self.assertIsNotNone(
             frame,
-            f"Kameraet (index {CAMERA_INDEX}) leverede intet frame.",
+            f"get_fresh_frame() (index {CAMERA_INDEX}) leverede intet frame.",
         )
         h, w = frame.shape[:2]
         self.assertGreater(w, 0, "Frame-bredde er 0")
@@ -207,33 +209,33 @@ class TestCameraDistance(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_02_pixel_to_cm_conversion_is_consistent(self):
         """
-        pixel_to_cm skal vaere konsistent:
+        FieldMap.pixel_to_cm() og compute_distance() skal vaere konsistente:
         - Samme punkt skal give samme koordinat.
-        - To forskellige punkter skal give en positiv afstand.
-        - Hjørnerne skal ligge inden for banens dimensioner.
+        - Bane-diagonalen beregnet via compute_distance() maa ikke afvige
+          mere end 20 % fra den fysiske diagonal (FIELD_SIZE_CM).
         """
-        from config import FIELD_SIZE_CM
-
         fm = self.field_map
         w_cm, h_cm = FIELD_SIZE_CM
 
-        # Hent frame for at faa faktiske dimensioner
-        frame = self.camera.get_frame()
+        # Hent et friskt frame for at faa faktiske frame-dimensioner
+        frame = get_fresh_frame(self.camera)
         self.assertIsNotNone(frame, "Intet frame til konverterings-test")
         fh, fw = frame.shape[:2]
 
-        # Test: samme punkt -> samme cm
+        # Test: samme pixel -> samme cm-koordinat (determinisme)
         cx, cy = fw // 2, fh // 2
         cm1 = fm.pixel_to_cm(cx, cy)
         cm2 = fm.pixel_to_cm(cx, cy)
         self.assertAlmostEqual(cm1[0], cm2[0], places=5)
         self.assertAlmostEqual(cm1[1], cm2[1], places=5)
 
-        # Test: to kendte hjørnepunkter giver en afstand > 0
+        # Test: bane-diagonalen via _cm_distance (bruger compute_distance internt)
         px1 = fm.corners[0]  # top-venstre hjørne
         px2 = fm.corners[2]  # bund-højre hjørne (diagonalt modsatte)
         dist_cm = _cm_distance(fm, px1, px2)
-        diag_expected = math.hypot(w_cm, h_cm)
+
+        # Forventet diagonal beregnet med systemets compute_distance()
+        diag_expected = compute_distance(0, 0, w_cm, h_cm)
 
         print(
             f"[DistanceTest] Diagonal bane-afstand:"
