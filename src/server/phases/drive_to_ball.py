@@ -237,6 +237,7 @@ def _verify_facing_ball(ctx, target_x, target_y):
     turn_angle = compute_turn_only(
         ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
         front_offset_cm=0.0)
+        
     return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle
 
 
