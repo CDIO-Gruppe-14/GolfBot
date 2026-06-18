@@ -192,6 +192,9 @@ STOP_DISTANCE_CM = 4.0
 PRECISION_MIN_TURN_DEGREES = 1.5
 PRECISION_TURN_SPEED = 20
 
+
+WAYPOINT_REACHED_OFFSET = 5.0
+
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
 # ===========================================================================
