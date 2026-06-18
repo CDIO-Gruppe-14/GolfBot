@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.4"
+ROBOT_IP    = "172.20.10.2"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -46,9 +46,11 @@ RETRY_DELAY_SEC = 2
 # ===========================================================================
 # Brugt i: src/robot/motor_controller.py  (linje 6-9)
 
-WHEEL_DIAMETER_CM  = 6.88    # Hjuldiameter i cm  (mål dit hjul med en lineal)
-AXLE_TRACK_CM      = 12.0    # Afstand mellem hjulcentrene i cm
-MOTOR_SPEED        = 30      # Kørehastighed i procent (0-100)
+WHEEL_DIAMETER_CM  = 7    # Hjuldiameter i cm  (mål dit hjul med en lineal)
+AXLE_TRACK_CM      = 19.5    # Afstand mellem hjulcentrene i cm
+
+TURN_SPEED         = 30
+MOTOR_SPEED        = 30
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -58,8 +60,9 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Opsamlingsmotor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 30        # Hastighed i procent (0-100)
-COLLECTION_SPEED     = 15        # Langsom koerselshastighed under opsamling (0-100)
+COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
+
+SPEED_UNDER_COLLECTION = 30
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
@@ -82,7 +85,7 @@ GYRO_PORT = "2"
 # Maal afstanden fra markoerens midte ud til hver kant med en lineal.
 # Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
 # og bander -- ikke kun markoer-centret.
-ROBOT_FRONT_CM = 12.0   # markoer-center -> forreste kant (naese/opsamler)
+ROBOT_FRONT_CM = 17.0   # markoer-center -> forreste kant (naese/opsamler)
 ROBOT_BACK_CM  = 20.0   # markoer-center -> bageste kant
 ROBOT_LEFT_CM  = 11.0    # markoer-center -> venstre kant
 ROBOT_RIGHT_CM = 11.0    # markoer-center -> hoejre kant
@@ -131,9 +134,6 @@ PROFILES_DIR = "color_profiles"
 # Brugt i: src/vision/ball_detector.py  (linje 15)
 BALL_COLORS = ["orange", "white"]
 
-# Sekundær markør på bagsiden af robotten for direkte heading-måling.
-# (Fjernet: Nu bruges ArUco-markører til robot-tracking og heading)
-
 # Morfologi kernel-størrelse til støjreduktion i masker
 # Brugt i: src/vision/color_detector.py  (linje 63) og hsv_utils.py  (linje 24)
 MORPH_KERNEL_SIZE = 5
@@ -168,21 +168,16 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 2.0
+MIN_TURN_DEGREES = 5.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_OFFSET_CM = 25
-
-# Afstand fra ArUco-markoerens center til robotfronten i cm.
-# Bruges til at omregne maaldistance fra markoer-reference til front-reference.
-# = ROBOT_FRONT_CM (se sektion 2b). Navnet bevares af bagudkompatibilitet.
-ROBOT_FRONT_OFFSET_CM = ROBOT_FRONT_CM
+COLLECTOR_MOVEMENT_CM = 10
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 30.0
+MAX_STEP_CM = 100.0
 
 # Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
 # Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
@@ -193,9 +188,9 @@ APPROACH_DISTANCE_CM = 15
 STOP_DISTANCE_CM = 4.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
-# Højere end MIN_TURN_DEGREES fordi kamera-støj dominerer på kort afstand.
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 5.0
+PRECISION_MIN_TURN_DEGREES = 1.5
+PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
@@ -217,10 +212,9 @@ GOAL_B_CM = (90.0, 120.0)  # Standard placering bund midt
 # ===========================================================================
 try:
     import cv2
-    # Dictionary-type (4×4 = mindst grid -> bedst detektion)
     ARUCO_DICT = cv2.aruco.DICT_4X4_50
 except ImportError:
-    ARUCO_DICT = 0
+    ARUCO_DICT = 0  # Fallback: cv2.aruco.DICT_4X4_50 is 0
 
 # Robot-markør
 ROBOT_MARKER_ID = 42
@@ -252,4 +246,3 @@ WALL_SAFE_RADIUS_CM = 15.0
 FIELD_BORDER_MARGIN_PX = 50
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
-

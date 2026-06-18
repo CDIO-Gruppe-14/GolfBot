@@ -65,7 +65,8 @@ class ColorCalibrator:
         }
         import os
         path = os.path.join(PROFILES_DIR, f"{self.profile_name}.json")
-        # Læs eksisterende indstillinger FØR vi overskriver filen
+        
+        # Bevar eksisterende formfiltre (f.eks. til orange, hvid eller roed)
         if os.path.exists(path):
             try:
                 with open(path, "r") as f:
@@ -75,16 +76,15 @@ class ColorCalibrator:
                             profile[key] = existing_profile[key]
             except Exception:
                 pass
-                
+
         # Særlige standardværdier hvis de ikke findes i forvejen
-        if self.profile_name in ["orange", "white", "hvid"] and "min_circularity" not in profile:
+        if self.profile_name in ["orange", "hvid"] and "min_circularity" not in profile:
             profile["min_circularity"] = 0.5
             profile["max_aspect_ratio"] = 1.5
         elif self.profile_name == "roed" and "min_circularity" not in profile:
             profile["min_circularity"] = None
             profile["max_aspect_ratio"] = None
 
-        # NU overskriver vi filen
         with open(path, "w") as f:
             json.dump(profile, f, indent=2)
             print(f"  Profil gemt: {path}")

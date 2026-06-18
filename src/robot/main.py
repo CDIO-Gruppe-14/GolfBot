@@ -50,19 +50,18 @@ def command_loop(server, mc, collector=None):
             print("Forbindelse mistet.")
             break
 
-        cmd, value = decode_command(raw)
+        cmd, value, speed  = decode_command(raw)
         print("Modtog: {!r} | Vaerdi: {}".format(cmd, value))
 
         if cmd == "FORWARD":
-            mc.move_forward(value)
+            mc.move_forward(speed, value)
             server.send_reply(DONE)
 
         elif cmd == "TURN":
-            mc.turn(value)
+            mc.turn(speed, value)
             server.send_reply(DONE)
 
         elif cmd == "HEADING":
-            # Gyro ikke tilsluttet -- server bruger kamera i stedet
             server.send_reply(DONE)
 
         elif cmd == "STOP":

@@ -14,11 +14,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 from src.communication.protocol import encode_command
 
 
-def send_and_verify(client, cmd, value=None):
+def send_and_verify(client, cmd, speed=None, value=None):
     """Send kommando og verificer svar. Returnerer reply eller None ved fejl."""
-    client.send_command(encode_command(cmd, value))
+    client.send_command(encode_command(cmd, speed, value))
     reply = client.wait_for_reply()
     if reply is None or reply.strip() != "DONE":
-        print("FEJL: EV3 svarede '{}' paa kommando {} {}".format(reply, cmd, value))
+        print("FEJL: EV3 svarede '{}' paa kommando {}, speed {}, value {}".format(reply, cmd, speed, value))
         return None
     return reply

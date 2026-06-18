@@ -5,7 +5,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.planning.pathfinder import find_path
+from src.planning.pathfinder import find_path, find_path_adaptive
 
 SAFE = 20.0
 FIELD_W, FIELD_H = 180, 120
@@ -88,6 +88,37 @@ class TestPathfinder(unittest.TestCase):
             self.assertLessEqual(x, FIELD_W - robot_r + 1.0)
             self.assertGreaterEqual(y, robot_r - 1.0)
             self.assertLessEqual(y, FIELD_H - robot_r + 1.0)
+
+    def test_adaptive_degrades_buffer_on_tight_field(self):
+        """Stor robot paa traang bane: fuld clearance giver ingen sti, men den
+        adaptive variant trapper bufferen ned og finder en rute."""
+        start = (20, 60)
+        goal = (160, 60)
+        obstacles = [(90, 60)]
+        big_radius = 23.0  # stor robot
+
+        # Fuld buffer (safe + radius) lukker korridoren -> ingen sti
+        full = find_path(start, goal, obstacles, FIELD_W, FIELD_H, SAFE,
+                         robot_radius=big_radius)
+        self.assertIsNone(full)
+
+        # Adaptiv: finder en sti med reduceret buffer, men beholder kropsradius
+        path, used = find_path_adaptive(start, goal, obstacles, FIELD_W, FIELD_H,
+                                        SAFE, robot_radius=big_radius)
+        self.assertIsNotNone(path)
+        self.assertLess(used, SAFE)  # bufferen blev trappet ned
+        # Kroppen holdes stadig fri: ruten holder mindst robot_radius fra krydset
+        self.assertGreaterEqual(
+            _min_clearance(path, start, obstacles), big_radius - 1.5)
+
+    def test_adaptive_returns_none_when_truly_enclosed(self):
+        """Indespaerret maal -> adaptiv giver (None, None), saa kalderen springer over."""
+        goal = (90, 60)
+        ring = [(85, 60), (95, 60), (90, 55), (90, 65)]
+        path, used = find_path_adaptive((10, 10), goal, ring, FIELD_W, FIELD_H,
+                                        SAFE, robot_radius=12.0)
+        self.assertIsNone(path)
+        self.assertIsNone(used)
 
     def test_blocked_goal_returns_none_when_walled_in(self):
         """Maal helt omringet af forhindringer taettere end tolerancen -> ingen sti."""
