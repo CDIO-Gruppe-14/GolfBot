@@ -34,3 +34,9 @@ class BallCollector:
         if self.motor:
             self.motor.off()
             print("Opsamlingsbaand stoppet.")
+
+    def is_stalled(self):
+        """Tjekker om motoren sidder fast."""
+        if self.motor:
+            return 'stalled' in self.motor.state
+        return False

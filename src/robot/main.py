@@ -89,6 +89,12 @@ def command_loop(server, mc, collector=None):
                 collector.eject_ball()
             server.send_reply(DONE)
 
+        elif cmd == "COLLECT_IS_STALLED":
+            if collector and collector.is_stalled():
+                server.send_reply("TRUE")
+            else:
+                server.send_reply("FALSE")
+
         elif cmd == "COLLECT":
             # Stubbed full collect sequence if needed later
             print("-> Modtog COLLECT.")
