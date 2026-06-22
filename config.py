@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.2"
+ROBOT_IP    = "172.20.10.12"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -50,7 +50,7 @@ WHEEL_DIAMETER_CM  = 7    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 19.5    # Afstand mellem hjulcentrene i cm
 
 TURN_SPEED         = 30
-MOTOR_SPEED        = 30
+MOTOR_SPEED        = 20
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -60,9 +60,9 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Opsamlingsmotor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
+COLLECTOR_SPEED      = 25        # Hastighed i procent (0-100)
 
-SPEED_UNDER_COLLECTION = 30
+SPEED_UNDER_COLLECTION = 25
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
@@ -86,9 +86,9 @@ GYRO_PORT = "2"
 # Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
 # og bander -- ikke kun markoer-centret.
 ROBOT_FRONT_CM = 17.0   # markoer-center -> forreste kant (naese/opsamler)
-ROBOT_BACK_CM  = 20.0   # markoer-center -> bageste kant
-ROBOT_LEFT_CM  = 11.0    # markoer-center -> venstre kant
-ROBOT_RIGHT_CM = 11.0    # markoer-center -> hoejre kant
+ROBOT_BACK_CM  = 17.0   # markoer-center -> bageste kant
+ROBOT_LEFT_CM  = 13.0    # markoer-center -> venstre kant
+ROBOT_RIGHT_CM = 13.0    # markoer-center -> hoejre kant
 
 # Konservativ kollisionsradius: afstanden fra markoer-center til robottens
 # fjerneste hjoerne. Orienterings-uafhaengig, saa den gaelder uanset hvordan
@@ -110,6 +110,14 @@ ROBOT_RADIUS_CM = max(
 CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
+
+# Fysisk kamerahøjde over baneoverfladen i cm.
+# Brugt i: src/vision/field_map.py (correct_height_offset)
+CAMERA_HEIGHT_CM = 161.0
+
+# Højde af ArUco-markørens centrum over baneoverfladen i cm.
+# Brugt i: src/vision/field_map.py (correct_height_offset)
+ROBOT_MARKER_HEIGHT_CM = 30.0
 
 
 # ===========================================================================
@@ -145,7 +153,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (180, 120 )
+FIELD_SIZE_CM = (177.0, 132.0 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
@@ -168,39 +176,37 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 5.0
+MIN_TURN_DEGREES = 10.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_MOVEMENT_CM = 10
+COLLECTOR_MOVEMENT_CM = 15
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 100.0
-
-# Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
-# Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
-APPROACH_DISTANCE_CM = 15
+MAX_STEP_CM = 50.0
 
 # Afstand (cm) hvor robotten stopper foran bolden og erklærer den "nået".
 # Brugt i: src/server/phases/drive_to_ball.py
-STOP_DISTANCE_CM = 4.0
+DISTANCE_TO_BALL = 10.0
+
+STOP_DISTANCE_CM = 14.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 1.5
+PRECISION_MIN_TURN_DEGREES = 5
 PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
 # ===========================================================================
 # Afstand til målet hvor robotten skal stoppe og spytte bolden ud (cm)
-DELIVER_DISTANCE_CM = 10
+DELIVER_DISTANCE_CM = 15
 
 # Afstand til waypoint hvor robotten skifter til direkte mål-kørsel (cm)
 # Brugt i: src/server/phases/drive_to_goal.py
-WAYPOINT_REACHED_CM = 8.0
+WAYPOINT_REACHED_CM = 10
 
 # Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
 # Målt i cm.

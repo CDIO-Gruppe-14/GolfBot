@@ -89,18 +89,10 @@ robot@ev3dev:~$
 
 ```bash
 # Overfør robot-kode, communication og config
-scp -r src/robot robot@172.20.10.4:/home/robot/CDIO/src/
-scp -r src/communication robot@172.20.10.4:/home/robot/CDIO/src/
-scp config.py robot@172.20.10.4:/home/robot/CDIO/
+scp -r src robot@172.20.10.2:/home/robot/src
 ```
 
 Adgangskode: `maker`
-
-Opret evt. mappestrukturen på EV3 først (i SSH-terminalen):
-
-```bash
-mkdir -p /home/robot/CDIO/src
-```
 
 Installer Python-pakker på EV3 (kun første gang, kør i SSH-terminalen):
 
@@ -110,7 +102,7 @@ pip3 install -r /home/robot/CDIO/ev3_requirements.txt
 
 > **Efterfølgende opdateringer:** Hvis du kun har ændret i `config.py`, er det nok at overføre den:
 > ```bash
-> scp config.py robot@172.20.10.4:/home/robot/CDIO/
+> scp config.py robot@172.20.10.4:/home/robot/src/
 > ```
 
 ---

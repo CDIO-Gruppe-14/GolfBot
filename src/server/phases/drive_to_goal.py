@@ -22,11 +22,11 @@ from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
 from src.server.phases.detection import detect_robot
-from src.planning.command_generator import compute_turn_only, compute_turn_and_distance
+from src.planning.command_generator import compute_distance, compute_turn_only
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
-from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, PRECISION_TURN_SPEED, ROBOT_FRONT_CM,
-                    WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED)
+from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, PRECISION_MIN_TURN_DEGREES, PRECISION_TURN_SPEED, ROBOT_FRONT_CM,
+                    WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, PRECISION_TURN_SPEED, MOTOR_SPEED)
 
 
 def drive_to_goal(ctx, obstacles=None):
@@ -63,12 +63,16 @@ def drive_to_goal(ctx, obstacles=None):
     print("[KoerTilMaal] Trin 2: Maal ({:.1f}, {:.1f})".format(
         ctx.goal_a_cm[0], ctx.goal_a_cm[1]))
     _navigate_to_point(ctx, ctx.goal_a_cm[0], ctx.goal_a_cm[1],
-                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL")
+                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL", 
+                       turn_speed=PRECISION_TURN_SPEED, 
+                       min_turn_degrees=PRECISION_MIN_TURN_DEGREES, 
+                       obstacle_points=None,
+                       field_w=field_w, field_h=field_h)
 
     print("[KoerTilMaal] Maal naaet!")
 
 
-def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
+def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed=TURN_SPEED, min_turn_degrees=MIN_TURN_DEGREES,    
                        obstacle_points=None, field_w=180, field_h=120):
     """Intern navigation-loop mod et punkt. Stopper ved stop_distance.
 
@@ -86,8 +90,10 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
                 ctx.iteration, label))
             continue
 
-        turn_angle, distance = compute_turn_and_distance(
-            ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
+        turn_angle = compute_turn_only(
+            ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
+        distance = compute_distance(
+            ctx.robot.x, ctx.robot.y, target_x, target_y, ctx.robot.heading,
             front_offset_cm=ROBOT_FRONT_CM)
 
         print("[{}] {} | Pos: ({:.1f},{:.1f}) -> ({:.1f},{:.1f}) "
@@ -125,7 +131,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
         if route:
             while len(route) > 1 and math.hypot(
                     ctx.robot.x - route[0][0],
-                    ctx.robot.y - route[0][1]) <= WAYPOINT_REACHED_CM:
+                    ctx.robot.y - route[0][1]) <= stop_distance:
                 rx, ry = route.pop(0)
                 print("[{}] {} | Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, label, rx, ry, len(route)))
@@ -134,17 +140,34 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label,
         # Waypoints navigeres center-baseret (front_offset=0); det endelige maal
         # beholder front-offset (afstanden er allerede beregnet oeverst).
         if (sub_x, sub_y) != (target_x, target_y):
-            turn_angle, distance = compute_turn_only(
-                ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
-                front_offset_cm=0.0)
+            turn_angle = compute_turn_only(
+                ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y)
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=0.0) 
             print("[{}] {} | Foelger rute -> waypoint ({:.1f}, {:.1f})  "
                   "Turn: {:.1f}  Dist: {:.1f}".format(
                       ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
+            
+        if label == "WAYPOINT" and (sub_x, sub_y) == (target_x, target_y):
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=0.0)
+            
+        if label == "MAAL" and (sub_x, sub_y) == (target_x, target_y):
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=(ROBOT_FRONT_CM + DELIVER_DISTANCE_CM))
+            print("[{}] {} | Kører nu mod mål ({:.1f}, {:.1f})  "
+                  "Turn: {:.1f}  Dist: {:.1f}".format(
+                      ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
 
-        # Drej
-        if abs(turn_angle) > MIN_TURN_DEGREES:
-            execute_turn(ctx, PRECISION_TURN_SPEED, turn_angle)
+        # Drej hvis vinklen er for stor
+        if abs(turn_angle) > min_turn_degrees:
+            if not execute_turn(ctx, turn_speed ,turn_angle):
+                return False
             continue
-
-        # Fremad
-        execute_forward(ctx, PRECISION_TURN_SPEED, distance)
+        
+        print("[{}] Afstand til waypoint: {:.1f} cm".format(ctx.iteration, distance))
+        if not execute_forward(ctx, MOTOR_SPEED, distance):
+            return False

@@ -18,7 +18,6 @@ Svar EV3 → PC:
 # --- Kommando-konstanter ---
 FORWARD = "FORWARD"
 TURN    = "TURN"
-HEADING = "HEADING"
 STOP    = "STOP"
 
 # --- Svar-konstanter ---
@@ -62,4 +61,4 @@ def decode_command(raw):
     except (ValueError, IndexError):
         value = None
         speed = None
-    return cmd, value, speed
+    return cmd, speed, value

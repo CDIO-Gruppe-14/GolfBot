@@ -1,6 +1,7 @@
 import math
 import sys
 import os
+from turtle import distance
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import MAX_STEP_CM, ROBOT_FRONT_CM
@@ -42,30 +43,30 @@ def compute_angle_to_target(robot_x, robot_y, target_x, target_y):
     return math.degrees(math.atan2(dy, dx))
 
 
-def compute_distance(robot_x, robot_y, ball_x, ball_y):
+def compute_distance(robot_x, robot_y, ball_x, ball_y, robot_heading, front_offset_cm):
     """Beregn afstand fra robot til bold i cm."""
-    dx = ball_x - robot_x
-    dy = ball_y - robot_y
+    front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
+    dx = ball_x - front_x
+    dy = ball_y - front_y
     return math.hypot(dx, dy)
 
-
-def compute_turn_only(robot_x, robot_y, robot_heading, target_x, target_y,
-                      front_offset_cm=ROBOT_FRONT_CM):
+def compute_turn_only(robot_x, robot_y, robot_heading, target_x, target_y,):
     """
     Beregn KUN drejning. Returnerer (turn_angle)
     """
-    front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
     
-    dx = target_x - front_x
-    dy = target_y - front_y
+    dx = target_x - robot_x
+    dy = target_y - robot_y
 
     target_angle = math.degrees(math.atan2(dy, dx))
     
     if robot_heading is None:
         turn_angle = target_angle
     else:
+        # Normaliser til [-180, 180] for at undgaa unoejagtige store drejninger.
         turn_angle = (target_angle - robot_heading + 180) % 360 - 180
 
+    # Rund til 1 decimal for at undgaa unoejagtige små drejninger, som kan forstyrre
     return round(turn_angle, 1)
 
 
@@ -75,13 +76,12 @@ def compute_forward_step(distance):
     Sikr desuden at vi ikke kører helt frem til bolden i et normalt step,
     så vi tvinger præcisions-tilnærmelsen i main.py til at tage over.
     """
-    from config import APPROACH_DISTANCE_CM
     
-    if distance <= APPROACH_DISTANCE_CM:
+    if distance <= MAX_STEP_CM:
         return round(distance, 1)
-        
-    # Kør kun indtil vi er lige i kanten af præcisions-zonen
-    safe_dist = distance - (APPROACH_DISTANCE_CM - 1.0)
+    # Koer kun del af vejen for at tvinge re-evaluering af position og heading undervejs.
+    # Dette hjælper især hvis vi er langt fra bolden og/eller har en stor
+    safe_dist = distance * 0.8
     return round(min(safe_dist, MAX_STEP_CM), 1)
 
 
