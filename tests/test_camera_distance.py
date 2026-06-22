@@ -56,8 +56,30 @@ def _cm_distance(field_map, p1, p2):
     return compute_distance(x1_cm, y1_cm, x2_cm, y2_cm)
 
 
-def _draw_overlay(frame, points, px_dist=None, cm_dist=None):
+def _draw_overlay(frame, points, px_dist=None, cm_dist=None, field_map=None):
     """Tegner prikker, linje og maalingsresultat oven paa frame (in-place)."""
+    # Tegn banens afgrænsning hvis field_map er angivet
+    if field_map is not None and getattr(field_map, "corners", None) is not None:
+        import numpy as np
+        corners = field_map.corners
+        if len(corners) == 4:
+            pts = np.array(corners, np.int32)
+            pts = pts.reshape((-1, 1, 2))
+            cv2.polylines(frame, [pts], True, (0, 165, 255), 2)
+            
+            # Tegn hver af de 4 hjørner med tekst
+            labels = ["TL (H1)", "TR (H2)", "BR (H3)", "BL (H4)"]
+            for idx, pt in enumerate(corners):
+                cx, cy = int(pt[0]), int(pt[1])
+                cv2.circle(frame, (cx, cy), 6, (0, 165, 255), -1)
+                text = f"{labels[idx]}: ({cx}, {cy})"
+                cv2.putText(
+                    frame, text,
+                    (cx + 8, cy - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 1,
+                    cv2.LINE_AA
+                )
+
     colors = [(0, 0, 255), (255, 0, 0)]   # roed foerste punkt, blaa andet punkt
     labels = ["P1", "P2"]
 
@@ -104,6 +126,7 @@ def _draw_overlay(frame, points, px_dist=None, cm_dist=None):
         (8, 22),
         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1,
     )
+
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +329,7 @@ class TestCameraDistance(unittest.TestCase):
                 list(_state["points"]),
                 _state["px_dist"],
                 _state["cm_dist"],
+                field_map=self.field_map,
             )
 
             cv2.imshow(window, display)
