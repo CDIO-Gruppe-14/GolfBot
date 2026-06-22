@@ -34,7 +34,8 @@ from src.server.phases.detection import detect_robot
 
 from config import (MIN_TURN_DEGREES, PRECISION_TURN_SPEED, STOP_DISTANCE_CM,
                     PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_CM,
-                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, MOTOR_SPEED, WAYPOINT_REACHED_CM)
+                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, 
+                    TURN_SPEED, MOTOR_SPEED, WAYPOINT_REACHED_CM, DISTANCE_TO_BALL)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -198,6 +199,8 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 print("[{}] Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, rx, ry, len(route)))
             sub_x, sub_y = route[0]
+            print("[{}] Kører mod punktet ({:.0f},{:.0f})".format(
+                    ctx.iteration, sub_x, sub_y))
 
         # Sigt mod delmaalet hvis det ikke er det endelige maal
         # (turn_angle/distance til maalet er allerede beregnet oeverst).
@@ -207,20 +210,36 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # waypointet, mens fronten satte sig oven paa det -> vild pejling og
         # robotten roterer i ring. Front-offset bruges KUN til det endelige maal
         # (bolden), saa opsamleren rammer den.
+
+        # Waypoints navigeres center-baseret (front_offset=0); det endelige maal
+        # beholder front-offset (afstanden er allerede beregnet oeverst).
+            
         turn_angle = compute_turn_only(
             ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y)
-        print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}".format(
-            ctx.iteration, sub_x, sub_y, turn_angle))
 
         # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:
             if not execute_turn(ctx,TURN_SPEED ,turn_angle):
                 return False
             continue
+
+        if (sub_x, sub_y) == (ball.x, ball.y):
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=(ROBOT_FRONT_CM + DISTANCE_TO_BALL))
+            print("[{}] | Kører direkte mod bold ({:.1f}, {:.1f})  "
+                  "Turn: {:.1f}  Dist: {:.1f}".format(
+                      ctx.iteration, sub_x, sub_y, turn_angle, distance))
+        else:
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=ROBOT_FRONT_CM)
         
-        print("[{}] Afstand til waypoint: {:.1f} cm".format(ctx.iteration, distance))
+        print("[{}] Afstand til punktet: {:.1f} cm".format(ctx.iteration, distance))
+
         if not execute_forward(ctx, MOTOR_SPEED, distance):
             return False
+
 
 
 def _verify_facing_ball(ctx, target_x, target_y):

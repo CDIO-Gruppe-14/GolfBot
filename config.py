@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.2"
+ROBOT_IP    = "172.20.10.12"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -107,7 +107,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -189,6 +189,8 @@ MAX_STEP_CM = 50.0
 
 # Afstand (cm) hvor robotten stopper foran bolden og erklærer den "nået".
 # Brugt i: src/server/phases/drive_to_ball.py
+DISTANCE_TO_BALL = 10.0
+
 STOP_DISTANCE_CM = 14.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
@@ -204,7 +206,7 @@ DELIVER_DISTANCE_CM = 15
 
 # Afstand til waypoint hvor robotten skifter til direkte mål-kørsel (cm)
 # Brugt i: src/server/phases/drive_to_goal.py
-WAYPOINT_REACHED_CM = 7.5
+WAYPOINT_REACHED_CM = 10
 
 # Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
 # Målt i cm.

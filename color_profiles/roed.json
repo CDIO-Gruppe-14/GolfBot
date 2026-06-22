@@ -1,20 +1,20 @@
 {
   "name": "roed",
   "h": 179,
-  "s": 206,
-  "v": 213,
-  "h_tol": 20,
-  "s_tol": 26,
-  "v_tol": 17,
+  "s": 204,
+  "v": 231,
+  "h_tol": 2,
+  "s_tol": 68,
+  "v_tol": 77,
   "lower": [
-    159,
-    180,
-    196
+    177,
+    136,
+    154
   ],
   "upper": [
     179,
-    232,
-    230
+    255,
+    255
   ],
   "min_circularity": null,
   "max_aspect_ratio": null

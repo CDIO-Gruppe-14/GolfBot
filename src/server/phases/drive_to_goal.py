@@ -144,8 +144,21 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed
                 ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y)
             distance = compute_distance(
                 ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
-                front_offset_cm=ROBOT_FRONT_CM)
+                front_offset_cm=0.0) 
             print("[{}] {} | Foelger rute -> waypoint ({:.1f}, {:.1f})  "
+                  "Turn: {:.1f}  Dist: {:.1f}".format(
+                      ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
+            
+        if label == "WAYPOINT" and (sub_x, sub_y) == (target_x, target_y):
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=0.0)
+            
+        if label == "MAAL" and (sub_x, sub_y) == (target_x, target_y):
+            distance = compute_distance(
+                ctx.robot.x, ctx.robot.y, sub_x, sub_y,ctx.robot.heading,
+                front_offset_cm=(ROBOT_FRONT_CM + DELIVER_DISTANCE_CM))
+            print("[{}] {} | Kører nu mod mål ({:.1f}, {:.1f})  "
                   "Turn: {:.1f}  Dist: {:.1f}".format(
                       ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
 
