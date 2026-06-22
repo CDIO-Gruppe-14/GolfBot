@@ -13,19 +13,64 @@ from collections import deque
 from typing import Deque, Dict, Iterable, List, Sequence, Set, Tuple
 
 from src.entities.ball import Ball
+from src.entities.obstacals import Obstacle
+from src.planning.polygon_utils import point_in_polygon, buffer_polygon
+from shapely.geometry import Polygon as ShapelyPolygon, Point as ShapelyPoint
 
 
-def _normalize_obstacles(obstacles: Iterable) -> List[Tuple[float, float]]:
+def _normalize_obstacles(obstacles: Iterable) -> List[Obstacle]:
+    """Normaliser forhindringer til en liste af Obstacle-objekter.
+
+    Haandterer baade nye Obstacle-objekter og legacy (x, y)-tupler
+    (til bagudkompatibilitet under overgangsperioden).
+    """
     normalized = []
     for obstacle in obstacles or []:
-        if isinstance(obstacle, (tuple, list)) and len(obstacle) >= 2:
-            normalized.append((float(obstacle[0]), float(obstacle[1])))
+        if isinstance(obstacle, Obstacle):
+            normalized.append(obstacle)
+        elif isinstance(obstacle, (tuple, list)) and len(obstacle) >= 2:
+            from config import OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM
+            ox, oy = float(obstacle[0]), float(obstacle[1])
+            margin = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
+            n_pts = 12
+            polygon = [
+                (ox + 0.1 * math.cos(2 * math.pi * i / n_pts),
+                 oy + 0.1 * math.sin(2 * math.pi * i / n_pts))
+                for i in range(n_pts)
+            ]
+            buffered = [
+                (ox + margin * math.cos(2 * math.pi * i / n_pts),
+                 oy + margin * math.sin(2 * math.pi * i / n_pts))
+                for i in range(n_pts)
+            ]
+            normalized.append(Obstacle(
+                center_x=ox, center_y=oy,
+                polygon_cm=polygon, buffered_polygon_cm=buffered,
+            ))
         elif hasattr(obstacle, "x") and hasattr(obstacle, "y"):
-            normalized.append((float(obstacle.x), float(obstacle.y)))
+            from config import OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM
+            ox, oy = float(obstacle.x), float(obstacle.y)
+            margin = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
+            n_pts = 12
+            polygon = [
+                (ox + 0.1 * math.cos(2 * math.pi * i / n_pts),
+                 oy + 0.1 * math.sin(2 * math.pi * i / n_pts))
+                for i in range(n_pts)
+            ]
+            buffered = [
+                (ox + margin * math.cos(2 * math.pi * i / n_pts),
+                 oy + margin * math.sin(2 * math.pi * i / n_pts))
+                for i in range(n_pts)
+            ]
+            normalized.append(Obstacle(
+                center_x=ox, center_y=oy,
+                polygon_cm=polygon, buffered_polygon_cm=buffered,
+            ))
     return normalized
 
 # --- TRIN 1: A* STIFINDING ---
-def a_star_distance(start: Ball, goal: Ball, obstacles: List[Tuple[float, float]], max_x: int, max_y: int) -> float:
+def a_star_distance(start: Ball, goal: Ball, obstacles: List[Obstacle], max_x: int, max_y: int) -> float:
+    """A*-afstandsberegning med polygon-baseret kollision."""
     if start.x == goal.x and start.y == goal.y:
         return 0.0
 
@@ -34,22 +79,34 @@ def a_star_distance(start: Ball, goal: Ball, obstacles: List[Tuple[float, float]
     
     g_score = {(int(start.x), int(start.y)): 0.0}
     
-    from config import OBSTACLE_SAFE_RADIUS_CM
+    from config import OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM
     
     # Heuristik: Euklidisk afstand i fugleflugt
     def h(pos):
         return math.hypot(pos[0] - goal.x, pos[1] - goal.y)
 
-    SAFE_RADIUS = OBSTACLE_SAFE_RADIUS_CM # 20 cm sikkerhedszone omkring forhindringer
-
-    # Forudberegn hvor tæt start/mål er på forhindringer, så vi kan tillade at køre derind
-    obs_tolerances = []
-    for ox, oy in obstacles:
-        dist_goal = math.hypot(goal.x - ox, goal.y - oy)
-        dist_start = math.hypot(start.x - ox, start.y - oy)
-        # Hvis bolden ligger 10 cm fra forhindringen, må vi køre ind til 9 cm fra forhindringen
-        allowed_dist = max(0.0, min(SAFE_RADIUS, dist_goal - 1.0, dist_start - 1.0))
-        obs_tolerances.append((ox, oy, allowed_dist))
+    # Byg effektive kollisions-polygoner med tolerance for start/maal
+    eff_buffer = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
+    collision_polygons = []
+    for obs in obstacles:
+        start_blocked = point_in_polygon(start.x, start.y, obs.buffered_polygon_cm)
+        goal_blocked = point_in_polygon(goal.x, goal.y, obs.buffered_polygon_cm)
+        if not start_blocked and not goal_blocked:
+            collision_polygons.append(obs.buffered_polygon_cm)
+        else:
+            try:
+                raw_poly = ShapelyPolygon(obs.polygon_cm)
+                if not raw_poly.is_valid:
+                    raw_poly = raw_poly.buffer(0)
+                dist_start = raw_poly.exterior.distance(ShapelyPoint(start.x, start.y))
+                dist_goal = raw_poly.exterior.distance(ShapelyPoint(goal.x, goal.y))
+                allowed = max(0.0, min(eff_buffer, dist_start - 1.0, dist_goal - 1.0))
+                if allowed > 0.5:
+                    collision_polygons.append(buffer_polygon(obs.polygon_cm, allowed))
+                else:
+                    collision_polygons.append([])
+            except Exception:
+                collision_polygons.append([])
 
     while open_set:
         _, current = heapq.heappop(open_set)
@@ -64,10 +121,10 @@ def a_star_distance(start: Ball, goal: Ball, obstacles: List[Tuple[float, float]
             # Tjek om vi er inden for banens grænser
             if 0 <= neighbor[0] <= max_x and 0 <= neighbor[1] <= max_y:
                 
-                # Tjek kollision med forhindringer (radius check)
+                # Polygon-baseret kollisionstest
                 is_blocked = False
-                for ox, oy, allowed_dist in obs_tolerances:
-                    if math.hypot(neighbor[0] - ox, neighbor[1] - oy) < allowed_dist:
+                for poly in collision_polygons:
+                    if poly and point_in_polygon(neighbor[0], neighbor[1], poly):
                         is_blocked = True
                         break
                 

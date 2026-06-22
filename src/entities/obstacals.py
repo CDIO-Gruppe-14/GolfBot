@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import List, Tuple
 
 @dataclass
 class Obstacle:
@@ -9,12 +9,17 @@ class Obstacle:
     Known obstacles:
     - "red_cross": A red cross placed in the field.
     
-    The properties dictionary can be used to store extra data
-    for future obstacle types without breaking the base structure.
+    polygon_cm holds the obstacle's actual contour converted to cm coordinates.
+    buffered_polygon_cm is the contour expanded by a safety margin, used directly
+    for collision detection in pathfinding (point-in-polygon test).
     """
-    x: int
-    y: int
-    radius: float #sikkerhedszone rundt om
+    center_x: float
+    center_y: float
+    polygon_cm: List[Tuple[float, float]] = field(default_factory=list)
+    buffered_polygon_cm: List[Tuple[float, float]] = field(default_factory=list)
 
     def __repr__(self):
-        return f"Obstacle (Sikkerhedszone: {self.radius} ({self.x},{self.y}))"
+        n = len(self.polygon_cm)
+        nb = len(self.buffered_polygon_cm)
+        return (f"Obstacle(center=({self.center_x:.1f}, {self.center_y:.1f}), "
+                f"polygon={n} pts, buffered={nb} pts)")

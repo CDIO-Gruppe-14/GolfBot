@@ -1,5 +1,6 @@
 import sys
 import os
+import numpy as np
 from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -11,6 +12,7 @@ class ObstaclePosition:
     x: float
     y: float
     area: float = field(default=0.0, repr=False)
+    contour: np.ndarray = field(default=None, repr=False)
 
 
 class ObstacleDetector:
@@ -44,5 +46,6 @@ class ObstacleDetector:
                     x=r.center[0],
                     y=r.center[1],
                     area=r.area,
+                    contour=r.contour,
                 ))
         return obstacles

@@ -246,3 +246,7 @@ WALL_SAFE_RADIUS_CM = 15.0
 FIELD_BORDER_MARGIN_PX = 50
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
+# Epsilon (cm) for kontur-forenkling via cv2.approxPolyDP.
+# Lavere = flere polygon-punkter = mere praecis form.
+# Hoejere = faerre punkter = hurtigere pathfinding.
+OBSTACLE_CONTOUR_SIMPLIFY_CM = 2.0

@@ -29,6 +29,7 @@ from src.server.phases.route_planner import _normalize_obstacles
 
 from src.planning.command_generator import calculate_approach_point
 from src.planning.command_generator import calculate_wall_approach_point
+from src.planning.polygon_utils import nearest_point_on_polygon, point_in_polygon
 
 from src.server.phases.detection import detect_robot
 
@@ -55,7 +56,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
     target_x, target_y = ball.x, ball.y
     approaching = False
 
-    # Normaliser forhindringer til (x, y)-cm-punkter eet sted -- bruges baade til
+    # Normaliser forhindringer til Obstacle-objekter -- bruges baade til
     # approach-punkt-beregningen og til A*-pathfinding under koerslen.
     obstacle_points = _normalize_obstacles(obstacles)
     field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120))
@@ -63,15 +64,17 @@ def drive_to_ball(ctx, ball, obstacles=None):
     if obstacle_points:
         closest_obs = None
         min_dist = float('inf')
-        for ox, oy in obstacle_points:
-            dist = math.hypot(ball.x - ox, ball.y - oy)
+        for obs in obstacle_points:
+            dist = math.hypot(ball.x - obs.center_x, ball.y - obs.center_y)
             if dist < min_dist:
                 min_dist = dist
-                closest_obs = (ox, oy)
+                closest_obs = obs
 
         # Hvis bolden er inden for sikkerhedszonen af en forhindring
-        if closest_obs and min_dist <= OBSTACLE_SAFE_RADIUS_CM:
-            app_x, app_y = calculate_approach_point(ball.x, ball.y, closest_obs[0], closest_obs[1], approach_dist_cm=OBSTACLE_SAFE_RADIUS_CM)
+        # bruges naermeste punkt paa forhindringens polygon til retning
+        if closest_obs and point_in_polygon(ball.x, ball.y, closest_obs.buffered_polygon_cm):
+            nearest = nearest_point_on_polygon(ball.x, ball.y, closest_obs.polygon_cm)
+            app_x, app_y = calculate_approach_point(ball.x, ball.y, nearest[0], nearest[1], approach_dist_cm=OBSTACLE_SAFE_RADIUS_CM)
             target_x, target_y = app_x, app_y
             approaching = True
             print(f"\n[KoerTilBold] BOLD TAET PAA FORHINDRING! Koerer til Approach Point ({app_x:.1f}, {app_y:.1f})")
