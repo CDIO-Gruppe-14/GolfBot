@@ -236,7 +236,7 @@ GOAL_B_MARKER_ID = 11
 # ===========================================================================
 # Sikkerhedsafstand (cm) omkring forhindringer. Bruges både til A* stifinding
 # og til at bestemme afstanden til vores "Approach Point" når en bold samles op.
-OBSTACLE_SAFE_RADIUS_CM = 20.0
+OBSTACLE_SAFE_RADIUS_CM = 5
 # Afstand (cm) fra banden hvor en bold regnes som "kant-bold", og robotten i
 # stedet koerer til et approach-punkt langs vaegnormalen (vinkelret indefra),
 # saa den ikke rammer banden under opsamling. Brugt i drive_to_ball (#3).
@@ -249,4 +249,4 @@ OBSTACLE_MIN_AREA_PX = 150
 # Epsilon (cm) for kontur-forenkling via cv2.approxPolyDP.
 # Lavere = flere polygon-punkter = mere praecis form.
 # Hoejere = faerre punkter = hurtigere pathfinding.
-OBSTACLE_CONTOUR_SIMPLIFY_CM = 2.0
+OBSTACLE_CONTOUR_SIMPLIFY_CM = 1.0

@@ -57,7 +57,7 @@ def buffer_polygon(polygon_cm: Sequence[Point],
         poly = ShapelyPolygon(polygon_cm)
         if not poly.is_valid:
             poly = poly.buffer(0)  # fix self-intersections
-        buffered = poly.buffer(margin_cm, join_style=2)  # 2 = mitre join
+        buffered = poly.buffer(margin_cm, join_style=1)  # 1 = round join
         if buffered.is_empty:
             return []
         # buffer() kan returnere MultiPolygon; tag den stoerste
