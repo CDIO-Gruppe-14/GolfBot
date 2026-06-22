@@ -111,6 +111,14 @@ CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
+# Fysisk kamerahøjde over baneoverfladen i cm.
+# Brugt i: src/vision/field_map.py (correct_height_offset)
+CAMERA_HEIGHT_CM = 161.0
+
+# Højde af ArUco-markørens centrum over baneoverfladen i cm.
+# Brugt i: src/vision/field_map.py (correct_height_offset)
+ROBOT_MARKER_HEIGHT_CM = 30.0
+
 
 # ===========================================================================
 # 4. VISION / FARVEDETEKTION
