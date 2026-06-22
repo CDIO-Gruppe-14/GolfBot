@@ -61,9 +61,6 @@ def command_loop(server, mc, collector=None):
             mc.turn(speed, value)
             server.send_reply(DONE)
 
-        elif cmd == "HEADING":
-            server.send_reply(DONE)
-
         elif cmd == "STOP":
             mc.stop()
             server.send_reply(DONE)

@@ -145,10 +145,12 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed
                   "Turn: {:.1f}  Dist: {:.1f}".format(
                       ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
 
-        # Drej
+        # Drej hvis vinklen er for stor
         if abs(turn_angle) > MIN_TURN_DEGREES:
-            execute_turn(ctx, turn_speed, turn_angle)
+            if not execute_turn(ctx,TURN_SPEED ,turn_angle):
+                return False
             continue
-
-        # Fremad
-        execute_forward(ctx, MOTOR_SPEED, distance)
+        
+        print("[{}] Afstand til waypoint: {:.1f} cm".format(ctx.iteration, distance))
+        if not execute_forward(ctx, MOTOR_SPEED, distance):
+            return False

@@ -217,10 +217,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
             if not execute_turn(ctx,TURN_SPEED ,turn_angle):
                 return False
             continue
-
-        distance = compute_distance(
-            ctx.robot.x, ctx.robot.y, sub_x, sub_y, ctx.robot.heading, 
-            front_offset_cm=ROBOT_FRONT_CM)
+        
         print("[{}] Afstand til waypoint: {:.1f} cm".format(ctx.iteration, distance))
         if not execute_forward(ctx, MOTOR_SPEED, distance):
             return False

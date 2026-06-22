@@ -18,7 +18,6 @@ Svar EV3 → PC:
 # --- Kommando-konstanter ---
 FORWARD = "FORWARD"
 TURN    = "TURN"
-HEADING = "HEADING"
 STOP    = "STOP"
 
 # --- Svar-konstanter ---

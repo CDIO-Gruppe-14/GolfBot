@@ -200,7 +200,7 @@ DELIVER_DISTANCE_CM = 10
 
 # Afstand til waypoint hvor robotten skifter til direkte mål-kørsel (cm)
 # Brugt i: src/server/phases/drive_to_goal.py
-WAYPOINT_REACHED_CM = 8.0
+WAYPOINT_REACHED_CM = 5.0
 
 # Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
 # Målt i cm.
