@@ -50,7 +50,7 @@ WHEEL_DIAMETER_CM  = 7    # Hjuldiameter i cm  (mål dit hjul med en lineal)
 AXLE_TRACK_CM      = 19.5    # Afstand mellem hjulcentrene i cm
 
 TURN_SPEED         = 30
-MOTOR_SPEED        = 30
+MOTOR_SPEED        = 20
 
 # Bevægelses-ports
 # Brugt i: src/robot/motor_controller.py  (linje 16)
@@ -85,10 +85,10 @@ GYRO_PORT = "2"
 # Maal afstanden fra markoerens midte ud til hver kant med en lineal.
 # Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
 # og bander -- ikke kun markoer-centret.
-ROBOT_FRONT_CM = 17.0   # markoer-center -> forreste kant (naese/opsamler)
-ROBOT_BACK_CM  = 20.0   # markoer-center -> bageste kant
-ROBOT_LEFT_CM  = 11.0    # markoer-center -> venstre kant
-ROBOT_RIGHT_CM = 11.0    # markoer-center -> hoejre kant
+ROBOT_FRONT_CM = 15.0   # markoer-center -> forreste kant (naese/opsamler)
+ROBOT_BACK_CM  = 17.0   # markoer-center -> bageste kant
+ROBOT_LEFT_CM  = 13.0    # markoer-center -> venstre kant
+ROBOT_RIGHT_CM = 13.0    # markoer-center -> hoejre kant
 
 # Konservativ kollisionsradius: afstanden fra markoer-center til robottens
 # fjerneste hjoerne. Orienterings-uafhaengig, saa den gaelder uanset hvordan
@@ -145,7 +145,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (180, 120 )
+FIELD_SIZE_CM = (167, 121.7 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
@@ -168,7 +168,7 @@ FIELD_CORNERS_PX = [
 # Mindste drejningsvinkel i grader (dead-zone).
 # Drejninger mindre end dette ignoreres for at undgaa oscillering.
 # Brugt i: src/server/phases/drive_to_ball.py og drive_to_goal.py
-MIN_TURN_DEGREES = 5.0
+MIN_TURN_DEGREES = 10.0
 
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
@@ -191,9 +191,6 @@ STOP_DISTANCE_CM = 4.0
 # Brugt i: src/server/phases/drive_to_ball.py
 PRECISION_MIN_TURN_DEGREES = 1.5
 PRECISION_TURN_SPEED = 20
-
-
-WAYPOINT_REACHED_OFFSET = 5.0
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
