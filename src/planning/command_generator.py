@@ -42,22 +42,20 @@ def compute_angle_to_target(robot_x, robot_y, target_x, target_y):
     return math.degrees(math.atan2(dy, dx))
 
 
-def compute_distance(robot_x, robot_y, ball_x, ball_y):
+def compute_distance(robot_x, robot_y, ball_x, ball_y, robot_heading, front_offset_cm):
     """Beregn afstand fra robot til bold i cm."""
-    dx = ball_x - robot_x
-    dy = ball_y - robot_y
+    front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
+    dx = ball_x - front_x
+    dy = ball_y - front_y
     return math.hypot(dx, dy)
 
-
-def compute_turn_only(robot_x, robot_y, robot_heading, target_x, target_y,
-                      front_offset_cm=ROBOT_FRONT_CM):
+def compute_turn_only(robot_x, robot_y, robot_heading, target_x, target_y,):
     """
     Beregn KUN drejning. Returnerer (turn_angle)
     """
-    front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
     
-    dx = target_x - front_x
-    dy = target_y - front_y
+    dx = target_x - robot_x
+    dy = target_y - robot_y
 
     target_angle = math.degrees(math.atan2(dy, dx))
     

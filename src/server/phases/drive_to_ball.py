@@ -23,7 +23,7 @@ from src.server.helpers.command_utils import send_and_verify
 from src.server.helpers.navigation import (
     execute_turn, execute_forward
 )
-from src.planning.command_generator import compute_distance, compute_turn_and_distance, compute_turn_only
+from src.planning.command_generator import compute_distance, compute_turn_only
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
 
@@ -34,7 +34,7 @@ from src.server.phases.detection import detect_robot
 
 from config import (MIN_TURN_DEGREES, PRECISION_TURN_SPEED, STOP_DISTANCE_CM,
                     PRECISION_MIN_TURN_DEGREES, ROBOT_FRONT_CM,
-                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, MOTOR_SPEED)
+                    OBSTACLE_SAFE_RADIUS_CM, WALL_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, MOTOR_SPEED, WAYPOINT_REACHED_CM)
 
 
 def drive_to_ball(ctx, ball, obstacles=None):
@@ -57,8 +57,10 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
     # Normaliser forhindringer til (x, y)-cm-punkter eet sted -- bruges baade til
     # approach-punkt-beregningen og til A*-pathfinding under koerslen.
+    
+    #TODO Kig på om vi får de rigtig field variabler
     obstacle_points = _normalize_obstacles(obstacles)
-    field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120))
+    field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120)) #
 
     if obstacle_points:
         closest_obs = None
@@ -108,9 +110,11 @@ def drive_to_ball(ctx, ball, obstacles=None):
             continue
 
         # --- Beregn drejning og afstand ---
-        turn_angle, distance = compute_turn_and_distance(
-            ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
+        distance = compute_distance(
+            ctx.robot.x, ctx.robot.y, target_x, target_y, ctx.robot.heading, 
             front_offset_cm=ROBOT_FRONT_CM)
+        
+        turn_angle = compute_turn_only(ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
 
         print("-" * 60)
         print("[{}] Robot: ({:.1f}, {:.1f})  Bold: ({:.1f}, {:.1f})".format(
@@ -127,15 +131,20 @@ def drive_to_ball(ctx, ball, obstacles=None):
                 print(f"[{ctx.iteration}] Approach point naaet! Skifter maal direkte mod bolden.")
                 approaching = False
                 route = []  # spring A* over og koer direkte (A* afviser maal i safety-zones)
-                
+                                
             # Endelig vinkel-verifikation med et FRISK billede (center-baseret)
             # foer vi godkender at vi staar overfor bolden -- TURN er upraecis,
             # saa vi stoler ikke blindt paa at den forrige drejning ramte.
             ok, fresh_turn_angle = _verify_facing_ball(ctx, target_x, target_y)
             if ok:
-                print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
-                    ctx.iteration, distance))
-                return True
+                distance = compute_distance(
+                    ctx.robot.x, ctx.robot.y, target_x, target_y, ctx.robot.heading, 
+                    front_offset_cm=ROBOT_FRONT_CM)
+                if distance <= STOP_DISTANCE_CM:
+                    print("[{}] >>> BOLD NAAET! (vinkel verificeret) Afstand: {:.1f} cm <<<".format(
+                        ctx.iteration, distance))
+                    return True
+                continue
             if fresh_turn_angle is None:
                 continue  # kamerafejl -- tag nyt billede
             print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer".format(
@@ -184,7 +193,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         if route:
             while len(route) > 1 and math.hypot(
                     ctx.robot.x - route[0][0],
-                    ctx.robot.y - route[0][1]) <= 5.0:
+                    ctx.robot.y - route[0][1]) <= WAYPOINT_REACHED_CM:
                 rx, ry = route.pop(0)
                 print("[{}] Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, rx, ry, len(route)))
@@ -199,8 +208,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         # robotten roterer i ring. Front-offset bruges KUN til det endelige maal
         # (bolden), saa opsamleren rammer den.
         turn_angle = compute_turn_only(
-            ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y,
-            front_offset_cm=0.0)
+            ctx.robot.x, ctx.robot.y, ctx.robot.heading, sub_x, sub_y)
         print("[{}] Foelger rute -> waypoint ({:.1f}, {:.1f})  Turn: {:.1f}".format(
             ctx.iteration, sub_x, sub_y, turn_angle))
 
@@ -209,9 +217,9 @@ def drive_to_ball(ctx, ball, obstacles=None):
             if not execute_turn(ctx,TURN_SPEED ,turn_angle):
                 return False
             continue
-
-        distance = compute_distance(ctx.robot.x, ctx.robot.y, sub_x, sub_y)
-        if not execute_forward(ctx,MOTOR_SPEED, distance - ROBOT_FRONT_CM):
+        
+        print("[{}] Afstand til waypoint: {:.1f} cm".format(ctx.iteration, distance))
+        if not execute_forward(ctx, MOTOR_SPEED, distance):
             return False
 
 
@@ -234,62 +242,7 @@ def _verify_facing_ball(ctx, target_x, target_y):
     # bolden): smaa heading-fejl giver store udsving -> robotten retter for
     # meget og rammer skaevt. (Maalet rammes praecist fordi det tilnaermes paa
     # lang afstand, hvor front-offset er ubetydelig.)
-    turn_angle, distance = compute_turn_and_distance(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-        front_offset_cm=0.0)
+    turn_angle = compute_turn_only(
+        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y)
         
     return abs(turn_angle) <= PRECISION_MIN_TURN_DEGREES, turn_angle
-
-
-def _precision_approach(ctx, turn_angle, distance, target_x, target_y):
-    """Praecisions-tilnaermelse naar robotten er taet paa bolden.
-    Returnerer True hvis bolden er naaet, False for at tage nyt billede."""
-    # Fase A: Ret vinkel -- men KUN hvis den er markant forkert.
-    # Vinklen beregnes CENTER-baseret (front_offset=0), saa bolden lander paa
-    # robottens koerselsakse. Front-baseret finjustering paa kort afstand er
-    # daarligt konditioneret og faar robotten til at ramme skaevt (se
-    # _verify_facing_ball). Paa kort afstand giver kamera-stoej store
-    # vinkelfejl, saa vi bruger en hoejere threshold end normal navigation.
-    turn_angle, _ = compute_turn_only(
-        ctx.robot.x, ctx.robot.y, ctx.robot.heading, target_x, target_y,
-        front_offset_cm=0.0)
-    if abs(turn_angle) > PRECISION_MIN_TURN_DEGREES:
-        print("[{}] PRECISION TURN {:.1f}".format(ctx.iteration, turn_angle))
-        if send_and_verify(ctx.client, "TURN",PRECISION_TURN_SPEED, turn_angle) is None:
-            return False
-        time.sleep(0.3)
-        detect_robot(ctx)
-        return False  # Tag nyt billede og tjek vinkel igen
-
-    # Vinklen ser rigtig ud -- men VERIFICER med et frisk billede foer vi
-    # committer til fremkoerslen. TURN er upraecis, saa vi stoler ikke blindt
-    # paa at den forrige drejning ramte. Er vinklen alligevel forkert, retter
-    # vi den og tager et nyt billede i stedet for at koere skaevt mod bolden.
-    ok, fresh_turn, fresh_dist = _verify_facing_ball(ctx, target_x, target_y)
-    if not ok:
-        if fresh_turn is None:
-            return False  # kamerafejl -- proev igen
-        turn_speed = get_turn_speed(fresh_turn)
-        print("[{}] Vinkel ikke bekraeftet ({:.1f} grader) -- korrigerer foer fremkoersel (speed {}%)".format(
-            ctx.iteration, fresh_turn, turn_speed))
-        if send_and_verify(ctx.client, "TURN", fresh_turn) is None:
-            return False
-        time.sleep(0.3)
-        detect_robot(ctx)
-        return False
-
-    # Fase B: Vinkel er bekraeftet -- koer frem til stop-afstanden.
-    drive_dist = round(fresh_dist - STOP_DISTANCE_CM, 1)
-    if drive_dist <= 0:
-        print("[{}] Bolden er allerede inden for stop-afstanden ({:.1f} cm)".format(
-            ctx.iteration, STOP_DISTANCE_CM))
-        return True
-
-    print("[{}] PRECISION FORWARD {:.1f} cm (dist {:.1f} - stop {:.1f}) [vinkel verificeret]".format(
-        ctx.iteration, drive_dist, fresh_dist, STOP_DISTANCE_CM))
-    if send_and_verify(ctx.client, "FORWARD", drive_dist) is None:
-        return False
-    time.sleep(0.5)
-
-    print("[{}] Bold naaet via precision!".format(ctx.iteration))
-    return True

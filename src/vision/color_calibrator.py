@@ -87,7 +87,7 @@ class ColorCalibrator:
 
         with open(path, "w") as f:
             json.dump(profile, f, indent=2)
-        print(f"  Profil gemt: {path}")
+            print(f"  Profil gemt: {path}")
 
     def run(self):
         print("\n  ── GolfBot Farvekalibrering ──")

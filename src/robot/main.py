@@ -61,9 +61,6 @@ def command_loop(server, mc, collector=None):
             mc.turn(speed, value)
             server.send_reply(DONE)
 
-        elif cmd == "HEADING":
-            server.send_reply(DONE)
-
         elif cmd == "STOP":
             mc.stop()
             server.send_reply(DONE)
@@ -88,6 +85,12 @@ def command_loop(server, mc, collector=None):
             if collector:
                 collector.eject_ball()
             server.send_reply(DONE)
+
+        elif cmd == "COLLECT_IS_STALLED":
+            if collector and collector.is_stalled():
+                server.send_reply("TRUE")
+            else:
+                server.send_reply("FALSE")
 
         elif cmd == "COLLECT":
             # Stubbed full collect sequence if needed later
