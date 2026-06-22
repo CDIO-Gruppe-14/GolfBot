@@ -160,8 +160,8 @@ def main():
                     queue.popleft()
                     continue
 
-                # Fase 4: Opsam bold
-                collect_ball(ctx, ball)
+                # Fase 4: Opsam bold (sikrer ogsaa en sikker slutposition)
+                collect_ball(ctx, ball, obstacles)
                 queue.popleft()
 
             # -----------------------------------------------------------

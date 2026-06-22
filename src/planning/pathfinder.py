@@ -136,6 +136,60 @@ def _simplify(points: List[Point],
     return result
 
 
+def is_position_safe(point: Point,
+                     obstacles: Sequence,
+                     max_x: float, max_y: float,
+                     robot_radius: float) -> bool:
+    """Er robottens markoer-center i (point) et SIKKERT sted at staa?
+
+    Samme sikkerheds-definition som find_path bruger:
+      - center uden for ALLE forhindringers buffered_polygon_cm (kroppen rammer
+        ikke forhindringen -- robot_radius er allerede bagt ind i bufferen ved
+        detektion), og
+      - mindst robot_radius fra hver vaeg (samme lo/hi-margin som find_path).
+
+    Genbruger _normalize_obstacles og _blocked, saa pathfinder og denne tjek
+    altid deler kollisionsmodel.
+    """
+    x, y = float(point[0]), float(point[1])
+    if not (robot_radius <= x <= max_x - robot_radius and
+            robot_radius <= y <= max_y - robot_radius):
+        return False
+    obstacles = _normalize_obstacles(obstacles)
+    polys = [obs.buffered_polygon_cm for obs in obstacles]
+    return not _blocked(x, y, polys)
+
+
+def find_safe_point(point: Point,
+                    obstacles: Sequence,
+                    max_x: float, max_y: float,
+                    robot_radius: float,
+                    step: float = 2.0,
+                    max_radius: float = 80.0,
+                    n_angles: int = 16) -> Optional[Point]:
+    """Find det NAERMESTE sikre punkt til 'point'.
+
+    Er 'point' allerede sikkert, returneres det uaendret. Ellers soeges udad i
+    ringe med voksende radius (step, 2*step, ...); for hver ring proeves n_angles
+    retninger, og foerste kandidat hvor is_position_safe er sand returneres.
+
+    Returnerer None hvis intet sikkert punkt findes inden for max_radius
+    (robotten er reelt indespaerret) -- saa kalderen kan haandtere en fallback.
+    """
+    obstacles = _normalize_obstacles(obstacles)
+    if is_position_safe(point, obstacles, max_x, max_y, robot_radius):
+        return (float(point[0]), float(point[1]))
+    r = step
+    while r <= max_radius:
+        for k in range(n_angles):
+            ang = 2 * math.pi * k / n_angles
+            cand = (point[0] + r * math.cos(ang), point[1] + r * math.sin(ang))
+            if is_position_safe(cand, obstacles, max_x, max_y, robot_radius):
+                return (float(cand[0]), float(cand[1]))
+        r += step
+    return None
+
+
 def find_path(start: Point, goal: Point,
               obstacles: Sequence[Obstacle],
               max_x: float, max_y: float,
