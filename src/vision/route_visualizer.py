@@ -105,12 +105,22 @@ def render_topdown(field_size, obstacles_cm, robot, balls, legs):
     rr = ROBOT_RADIUS_CM
     cv2.rectangle(img, P(rr, rr), P(fw - rr, fh - rr), (110, 70, 50), 1)
 
-    # Forhindringer med clearance-cirkler
+    # Forhindringer med clearance-polygoner / cirkler
     full = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
-    for ox, oy in obstacles_cm:
-        cv2.circle(img, P(ox, oy), int(full * SCALE), (60, 60, 130), 1)
-        cv2.circle(img, P(ox, oy), int(ROBOT_RADIUS_CM * SCALE), (80, 80, 220), 1)
-        cv2.drawMarker(img, P(ox, oy), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 16, 2)
+    for obs in obstacles_cm:
+        if isinstance(obs, tuple):
+            ox, oy = obs
+            cv2.circle(img, P(ox, oy), int(full * SCALE), (60, 60, 130), 1)
+            cv2.circle(img, P(ox, oy), int(ROBOT_RADIUS_CM * SCALE), (80, 80, 220), 1)
+            cv2.drawMarker(img, P(ox, oy), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 16, 2)
+        else:
+            if obs.buffered_polygon_cm:
+                poly = np.array([P(px, py) for px, py in obs.buffered_polygon_cm], dtype=np.int32)
+                cv2.polylines(img, [poly], True, (60, 60, 130), 1)
+            if obs.polygon_cm:
+                poly = np.array([P(px, py) for px, py in obs.polygon_cm], dtype=np.int32)
+                cv2.polylines(img, [poly], True, (80, 80, 220), 2)
+            cv2.drawMarker(img, P(obs.center_x, obs.center_y), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 16, 2)
 
     # Ruter pr. bold
     for i, (pts, reachable, _used) in enumerate(legs):
@@ -191,7 +201,10 @@ def run_camera():
     from src.vision.ball_detector import BallDetector
     from src.vision.obstacle_detector import ObstacleDetector
     from src.vision.field_map import FieldMap
-    from config import ARUCO_DICT, ROBOT_MARKER_ID
+    from src.server.phases.detection import _contour_to_cm_polygon
+    from src.planning.polygon_utils import buffer_polygon
+    from src.entities.obstacals import Obstacle
+    from config import ARUCO_DICT, ROBOT_MARKER_ID, OBSTACLE_CONTOUR_SIMPLIFY_CM, OBSTACLE_SAFE_RADIUS_CM
 
     camera = RobotCamera()
     aruco = ArucoDetector(ARUCO_DICT)
@@ -226,10 +239,23 @@ def run_camera():
         bx, by = field_map.pixel_to_cm(b.x, b.y)
         balls.append(Ball(bx, by, b.color))
 
+    margin_cm = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
     obstacles_cm = []
     for o in obstacle_det.find_obstacles(frame):
         ox, oy = field_map.pixel_to_cm(o.x, o.y)
-        obstacles_cm.append((ox, oy))
+        polygon_cm = _contour_to_cm_polygon(o.contour, field_map, OBSTACLE_CONTOUR_SIMPLIFY_CM)
+        if polygon_cm and len(polygon_cm) >= 3:
+            buffered = buffer_polygon(polygon_cm, margin_cm)
+        else:
+            import math
+            n_pts = 12
+            buffered = [
+                (ox + margin_cm * math.cos(2 * math.pi * j / n_pts),
+                 oy + margin_cm * math.sin(2 * math.pi * j / n_pts))
+                for j in range(n_pts)
+            ]
+            polygon_cm = buffered
+        obstacles_cm.append(Obstacle(center_x=ox, center_y=oy, polygon_cm=polygon_cm, buffered_polygon_cm=buffered))
 
     print(f"Detekteret: {len(balls)} bolde, {len(obstacles_cm)} forhindring(er).")
     if not obstacles_cm:
@@ -262,8 +288,19 @@ def _draw_overlay(frame, field_map, obstacles_cm, balls, legs):
         px, py = field_map.cm_to_pixel(x, y)
         return (int(round(px)), int(round(py)))
 
-    for ox, oy in obstacles_cm:
-        cv2.drawMarker(frame, Q(ox, oy), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 22, 3)
+    for obs in obstacles_cm:
+        if isinstance(obs, tuple):
+            cv2.drawMarker(frame, Q(obs[0], obs[1]), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 22, 3)
+        else:
+            cv2.drawMarker(frame, Q(obs.center_x, obs.center_y), (0, 0, 255), cv2.MARKER_TILTED_CROSS, 22, 3)
+            # Tegn buffered_polygon_cm i GUL (tynd)
+            if obs.buffered_polygon_cm:
+                poly = np.array([Q(px, py) for px, py in obs.buffered_polygon_cm], dtype=np.int32)
+                cv2.polylines(frame, [poly], True, (0, 255, 255), 1)
+            # Tegn faktiske polygon_cm i CYAN (tyk) så vi kan se formen på den røde farve!
+            if obs.polygon_cm:
+                poly = np.array([Q(px, py) for px, py in obs.polygon_cm], dtype=np.int32)
+                cv2.polylines(frame, [poly], True, (255, 255, 0), 2)
     for i, (pts, reachable, _used) in enumerate(legs):
         color = LEG_COLORS[i % len(LEG_COLORS)] if reachable else (0, 0, 255)
         for a, b in zip(pts, pts[1:]):

@@ -117,9 +117,12 @@ class ColorDetector:
                 continue
             cx = int(M["m10"] / M["m00"]) + ox
             cy = int(M["m01"] / M["m00"]) + oy
+            
+            global_cnt = cnt + np.array([ox, oy]) if (ox != 0 or oy != 0) else cnt
+            
             results.append(DetectionResult(
                 found=True, center=(cx, cy), area=area,
-                contour=cnt, mask=mask, bbox=(x + ox, y + oy, w, h_box),
+                contour=global_cnt, mask=mask, bbox=(x + ox, y + oy, w, h_box),
             ))
         return results
 
@@ -199,7 +202,9 @@ def draw_detection(frame, result: DetectionResult,
     out = frame.copy()
     if not result.found:
         return out
-    if result.bbox:
+    if result.contour is not None:
+        cv2.drawContours(out, [result.contour], -1, color, 2)
+    elif result.bbox:
         x, y, w, h = result.bbox
         cv2.rectangle(out, (x, y), (x + w, y + h), color, 2)
     if result.center:

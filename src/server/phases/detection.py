@@ -10,6 +10,9 @@ fase 7 (tjek om der er flere bolde).
 
 import sys
 import os
+import cv2
+import math
+import numpy as np
 from typing import List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -17,6 +20,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 from src.server.helpers.camera_utils import get_fresh_frame, extract_heading
 from src.entities.ball import Ball
+from src.entities.obstacals import Obstacle
+from src.planning.polygon_utils import buffer_polygon
+
+from config import OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, OBSTACLE_CONTOUR_SIMPLIFY_CM
 
 
 def _capture_frame(ctx):
@@ -85,24 +92,80 @@ def detect_balls(ctx) -> Optional[List[Ball]]:
     return balls
 
 
-def detect_obstacles(ctx) -> Optional[List[Tuple[float, float]]]:
-    """Find forhindringer (det Roede Kryds) og returner cm-koordinater.
+def _contour_to_cm_polygon(contour, field_map, simplify_epsilon_cm):
+    """Konverter en OpenCV pixel-kontur til en forenklet cm-polygon.
+
+    1. Konverter hvert konturpunkt fra pixel til cm via perspektivtransform.
+    2. Forenkl polygonen med cv2.approxPolyDP (i cm-rum) for at reducere
+       antallet af punkter (~8-12 for et kryds).
+    """
+    if contour is None or len(contour) == 0:
+        return []
+
+    cm_points = []
+    for pt in contour:
+        px, py = pt[0]  # contour format: Nx1x2
+        cx, cy = field_map.pixel_to_cm(float(px), float(py))
+        cm_points.append((cx, cy))
+
+    if len(cm_points) < 3:
+        return cm_points
+
+    cm_array = np.array(cm_points, dtype=np.float32).reshape(-1, 1, 2)
+    simplified = cv2.approxPolyDP(cm_array, simplify_epsilon_cm, closed=True)
+    return [(float(pt[0][0]), float(pt[0][1])) for pt in simplified]
+
+
+def detect_obstacles(ctx) -> Optional[List[Obstacle]]:
+    """Find forhindringer (det Roede Kryds) og returner som Obstacle-objekter.
+
+    Hver Obstacle indeholder:
+      - center_x, center_y: centroid i cm
+      - polygon_cm: forhindringens faktiske form i cm (forenklet kontur)
+      - buffered_polygon_cm: formen udvidet med sikkerhedsmargin, klar til
+        point-in-polygon kollisionstest i pathfinding
 
     Returns:
-        Liste af (x, y)-tupler (evt. tom), eller None ved kamerafejl.
+        Liste af Obstacle (evt. tom), eller None ved kamerafejl.
     """
     frame = _capture_frame(ctx)
     if frame is None:
         return None
 
-    obstacles_cm = []
+    margin_cm = OBSTACLE_SAFE_RADIUS_CM + ROBOT_RADIUS_CM
+
+    obstacles = []
     for o in ctx.obstacle_detector.find_obstacles(frame):
         ox, oy = ctx.field_map.pixel_to_cm(o.x, o.y)
-        obstacles_cm.append((ox, oy))
 
-    if obstacles_cm:
-        print(f"[Detektion] Fundet {len(obstacles_cm)} forhindring(er) (Rødt Kryds):")
-        for o in obstacles_cm:
-            print(f"  - Forhindring på ({o[0]:.1f}, {o[1]:.1f}) cm")
+        # Konverter pixel-kontur til cm-polygon
+        polygon_cm = _contour_to_cm_polygon(
+            o.contour, ctx.field_map, OBSTACLE_CONTOUR_SIMPLIFY_CM)
 
-    return obstacles_cm
+        # Udvid polygonen med sikkerhedsmargin (robot-clearance)
+        if polygon_cm and len(polygon_cm) >= 3:
+            buffered = buffer_polygon(polygon_cm, margin_cm)
+        else:
+            # Fallback: ingen kontur tilgaengelig -- brug cirkel-approximation
+            n_pts = 12
+            buffered = [
+                (ox + margin_cm * math.cos(2 * math.pi * i / n_pts),
+                 oy + margin_cm * math.sin(2 * math.pi * i / n_pts))
+                for i in range(n_pts)
+            ]
+            polygon_cm = buffered
+
+        obstacle = Obstacle(
+            center_x=ox,
+            center_y=oy,
+            polygon_cm=polygon_cm,
+            buffered_polygon_cm=buffered,
+        )
+        obstacles.append(obstacle)
+
+    if obstacles:
+        print(f"[Detektion] Fundet {len(obstacles)} forhindring(er) (Rødt Kryds):")
+        for obs in obstacles:
+            print(f"  - {obs}")
+
+    return obstacles
