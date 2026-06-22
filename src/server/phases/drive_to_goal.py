@@ -131,7 +131,7 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed
         if route:
             while len(route) > 1 and math.hypot(
                     ctx.robot.x - route[0][0],
-                    ctx.robot.y - route[0][1]) <= WAYPOINT_REACHED_CM:
+                    ctx.robot.y - route[0][1]) <= stop_distance:
                 rx, ry = route.pop(0)
                 print("[{}] {} | Waypoint ({:.0f},{:.0f}) naaet -- {} tilbage".format(
                     ctx.iteration, label, rx, ry, len(route)))
