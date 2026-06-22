@@ -124,6 +124,7 @@ def _mouse_callback(event, x, y, flags, param):
         return  # Vent paa 'r' for nulstilling
 
     pts.append((x, y))
+    print(f"[DistanceTest] Punkt klikket: P{len(pts)} = ({x}, {y})")
 
     if len(pts) == 2:
         px = _pixel_distance(pts[0], pts[1])
@@ -133,7 +134,7 @@ def _mouse_callback(event, x, y, flags, param):
 
         scale = cm / px if px > 0 else 0.0
         print(
-            f"\n[DistanceTest] Maaling:"
+            f"\n[DistanceTest] Maaling udfoert:"
             f"\n  P1 (px): {pts[0]}"
             f"\n  P2 (px): {pts[1]}"
             f"\n  Afstand i pixels   : {px:.2f} px"
@@ -141,6 +142,7 @@ def _mouse_callback(event, x, y, flags, param):
             f"\n  Skala              : {scale:.6f} cm/px"
             f"\n  (Sammenlign cm-vaerdien med en fysisk linealmaaling paa banen)\n"
         )
+
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +167,9 @@ class TestCameraDistance(unittest.TestCase):
         aruco = ArucoDetector(ARUCO_DICT)
         cls.field_map = FieldMap(aruco_detector=aruco)
 
+        print(f"[DistanceTest] Initialiserer FieldMap...")
+        print(f"[DistanceTest] Banens fysiske mål (config.py): {FIELD_SIZE_CM} cm")
+
         # Forsøg live ArUco-kalibrering fra et friskt frame (get_fresh_frame
         # flusher kamera-bufferen saa vi ikke faar et forældet billede)
         frame = get_fresh_frame(cls.camera)
@@ -176,12 +181,18 @@ class TestCameraDistance(unittest.TestCase):
             )
 
         if cls.field_map.calibrate_from_aruco(frame):
-            print("[DistanceTest] Live ArUco bane-kalibrering brugt.")
+            print("[DistanceTest] Live ArUco bane-kalibrering udført med succes!")
         else:
             print(
-                "[DistanceTest] Ingen live ArUco-markorer fundet — "
+                "[DistanceTest] Ingen live ArUco-markører fundet — "
                 "bruger gemt/fallback kalibrering."
             )
+
+        print(f"[DistanceTest] Aktuelle pixel-hjørner brugt til homografi:")
+        for idx, pt in enumerate(cls.field_map.corners):
+            print(f"  Hjørne {idx+1}: {pt}")
+        print(f"[DistanceTest] Disse hjørner transformeres til: (0,0) -> {FIELD_SIZE_CM}")
+
 
     @classmethod
     def tearDownClass(cls):

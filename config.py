@@ -145,7 +145,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (180, 120 )
+FIELD_SIZE_CM = (167, 121.7 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
