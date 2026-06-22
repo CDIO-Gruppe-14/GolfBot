@@ -8,6 +8,9 @@ CALIBRATION_FILE = os.path.join(
     "calibration", "field_corners.json"
 )
 
+# Bruges til at beregne kameraets nadir (punkt på banen direkte under kameraet)
+from config import CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT
+
 
 class FieldMap:
     def __init__(self, field_corners_px=None, field_size_cm=None, aruco_detector=None):
@@ -115,3 +118,48 @@ class FieldMap:
         pt = np.float32([[[x_cm, y_cm]]])
         result = cv2.perspectiveTransform(pt, Minv)
         return float(result[0][0][0]), float(result[0][0][1])
+
+    @property
+    def _nadir_cm(self) -> tuple[float, float]:
+        """Beregner (lazy) cm-positionen direkte under kameraet (nadir-punktet).
+
+        Estimeres som midten af frame'et konverteret via den eksisterende homografi.
+        Resultatet caches efter foerste kald.
+        """
+        if not hasattr(self, '_nadir_cm_cache'):
+            self._nadir_cm_cache = self.pixel_to_cm(
+                CAMERA_FRAME_WIDTH / 2.0,
+                CAMERA_FRAME_HEIGHT / 2.0,
+            )
+        return self._nadir_cm_cache
+
+    def correct_height_offset(
+        self,
+        x_cm: float,
+        y_cm: float,
+        camera_height_cm: float,
+        marker_height_cm: float,
+    ) -> tuple[float, float]:
+        """Korrigerer for at ArUco-markøren sidder hævet over baneoverfladen.
+
+        pixel_to_cm() projicerer markør-pixlen ned paa z=0-planet (baneplanet),
+        men markøren er i virkeligheden paa hoejde marker_height_cm. Det bevirker
+        at den beregnede position forskydes udad fra kameraets nadir -- fejlen
+        vokser jo laengere robotten er fra midten af billedet.
+
+        Korrektionen traekkker resultatet mod nadir med faktoren h/H:
+            x_ground = x_homo + (x_nadir - x_homo) * (marker_height_cm / camera_height_cm)
+
+        Args:
+            x_cm, y_cm:          Ukorrigeret cm-position fra pixel_to_cm().
+            camera_height_cm:    Kameraets hoejde over baneoverfladen (cm).
+            marker_height_cm:    Markørens hoejde over baneoverfladen (cm).
+
+        Returns:
+            (x_ground_cm, y_ground_cm) -- korrigeret position paa baneplanet.
+        """
+        scale = marker_height_cm / camera_height_cm
+        nx, ny = self._nadir_cm
+        corrected_x = x_cm + (nx - x_cm) * scale
+        corrected_y = y_cm + (ny - y_cm) * scale
+        return corrected_x, corrected_y

@@ -42,7 +42,21 @@ def detect_robot(ctx) -> bool:
         print("[Detektion] FEJL: Kunne ikke finde robot paa banen")
         return False
 
+    #Offset for robot height
+    from config import CAMERA_HEIGHT_CM, ROBOT_MARKER_HEIGHT_CM
+
+    # Konverter markørens pixel-position til cm på baneplanet
     ctx.robot.x, ctx.robot.y = ctx.field_map.pixel_to_cm(robot.x, robot.y)
+
+    # Korrigér for markørens højde over baneplanet:
+    # pixel_to_cm() intersekter strålen med z=0, men markøren sidder på
+    # z=ROBOT_MARKER_HEIGHT_CM — det forskyver positionen udad mod kanterne.
+    ctx.robot.x, ctx.robot.y = ctx.field_map.correct_height_offset(
+        ctx.robot.x, ctx.robot.y,
+        camera_height_cm=CAMERA_HEIGHT_CM,
+        marker_height_cm=ROBOT_MARKER_HEIGHT_CM,
+    )
+
     ctx.robot.heading = extract_heading(robot, ctx.field_map)
 
     print(f"[Detektion] {ctx.robot}")
