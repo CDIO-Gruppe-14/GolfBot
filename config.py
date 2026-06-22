@@ -60,9 +60,9 @@ MOTOR_RIGHT_PORT = "D"   # Port for højre motor
 # Opsamlingsmotor
 # Brugt i: src/robot/test_collector.py
 COLLECTOR_MOTOR_PORT = "A" # Port for opsamler (ret til A eller C)
-COLLECTOR_SPEED      = 40        # Hastighed i procent (0-100)
+COLLECTOR_SPEED      = 25        # Hastighed i procent (0-100)
 
-SPEED_UNDER_COLLECTION = 30
+SPEED_UNDER_COLLECTION = 25
 
 # Gyroseensor input-port
 # Brugt i: src/robot/main.py  (linje 78)
@@ -85,7 +85,7 @@ GYRO_PORT = "2"
 # Maal afstanden fra markoerens midte ud til hver kant med en lineal.
 # Brugt til kollision: pathfinding holder HELE robotkroppen fri af forhindringer
 # og bander -- ikke kun markoer-centret.
-ROBOT_FRONT_CM = 15.0   # markoer-center -> forreste kant (naese/opsamler)
+ROBOT_FRONT_CM = 17.0   # markoer-center -> forreste kant (naese/opsamler)
 ROBOT_BACK_CM  = 17.0   # markoer-center -> bageste kant
 ROBOT_LEFT_CM  = 13.0    # markoer-center -> venstre kant
 ROBOT_RIGHT_CM = 13.0    # markoer-center -> hoejre kant
@@ -107,7 +107,7 @@ ROBOT_RADIUS_CM = max(
 # ===========================================================================
 # Brugt i: src/vision/camera.py  (linje 11-14)
 
-CAMERA_INDEX        = 0     # 0 = standard webcam, 1 = ekstern kamera
+CAMERA_INDEX        = 1     # 0 = standard webcam, 1 = ekstern kamera
 CAMERA_FRAME_WIDTH  = 1920   # Bredde i pixels
 CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
@@ -153,7 +153,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (167, 121.7 )
+FIELD_SIZE_CM = (177.0, 132.0 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
@@ -181,34 +181,30 @@ MIN_TURN_DEGREES = 10.0
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_MOVEMENT_CM = 10
+COLLECTOR_MOVEMENT_CM = 15
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
-MAX_STEP_CM = 100.0
-
-# Afstand (cm) hvor præcisions-tilnærmelse aktiveres.
-# Sæt denne STØRRE end robottens "blinde vinkel" (afstanden hvor kameraet ikke længere kan se bolden).
-APPROACH_DISTANCE_CM = 15
+MAX_STEP_CM = 50.0
 
 # Afstand (cm) hvor robotten stopper foran bolden og erklærer den "nået".
 # Brugt i: src/server/phases/drive_to_ball.py
-STOP_DISTANCE_CM = 4.0
+STOP_DISTANCE_CM = 14.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 1.5
+PRECISION_MIN_TURN_DEGREES = 5
 PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
 # 7. MÅL OG AFLEVERING (DELIVER)
 # ===========================================================================
 # Afstand til målet hvor robotten skal stoppe og spytte bolden ud (cm)
-DELIVER_DISTANCE_CM = 10
+DELIVER_DISTANCE_CM = 15
 
 # Afstand til waypoint hvor robotten skifter til direkte mål-kørsel (cm)
 # Brugt i: src/server/phases/drive_to_goal.py
-WAYPOINT_REACHED_CM = 5.0
+WAYPOINT_REACHED_CM = 2.5
 
 # Standardkoordinater for Mål A og Mål B (bruges hvis calibration/goals.json ikke findes).
 # Målt i cm.

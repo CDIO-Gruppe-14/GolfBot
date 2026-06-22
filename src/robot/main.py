@@ -50,8 +50,8 @@ def command_loop(server, mc, collector=None):
             print("Forbindelse mistet.")
             break
 
-        cmd, value, speed  = decode_command(raw)
-        print("Modtog: {!r} | Vaerdi: {}".format(cmd, value))
+        cmd, speed, value = decode_command(raw)
+        print("Modtog: {!r} | Speed: {} | Vaerdi: {}".format(cmd, speed, value))
 
         if cmd == "FORWARD":
             mc.move_forward(speed, value)

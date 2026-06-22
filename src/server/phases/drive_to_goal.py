@@ -25,7 +25,7 @@ from src.server.phases.detection import detect_robot
 from src.planning.command_generator import compute_distance, compute_turn_only
 from src.planning.pathfinder import find_path_adaptive
 from src.server.phases.route_planner import _normalize_obstacles
-from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, PRECISION_TURN_SPEED, ROBOT_FRONT_CM,
+from config import (MIN_TURN_DEGREES, DELIVER_DISTANCE_CM, PRECISION_MIN_TURN_DEGREES, PRECISION_TURN_SPEED, ROBOT_FRONT_CM,
                     WAYPOINT_REACHED_CM, OBSTACLE_SAFE_RADIUS_CM, ROBOT_RADIUS_CM, TURN_SPEED, PRECISION_TURN_SPEED, MOTOR_SPEED)
 
 
@@ -63,12 +63,16 @@ def drive_to_goal(ctx, obstacles=None):
     print("[KoerTilMaal] Trin 2: Maal ({:.1f}, {:.1f})".format(
         ctx.goal_a_cm[0], ctx.goal_a_cm[1]))
     _navigate_to_point(ctx, ctx.goal_a_cm[0], ctx.goal_a_cm[1],
-                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL", turn_speed=PRECISION_TURN_SPEED, obstacle_points=None)
+                       stop_distance=DELIVER_DISTANCE_CM, label="MAAL", 
+                       turn_speed=PRECISION_TURN_SPEED, 
+                       min_turn_degrees=PRECISION_MIN_TURN_DEGREES, 
+                       obstacle_points=None,
+                       field_w=field_w, field_h=field_h)
 
     print("[KoerTilMaal] Maal naaet!")
 
 
-def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed=TURN_SPEED,    
+def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed=TURN_SPEED, min_turn_degrees=MIN_TURN_DEGREES,    
                        obstacle_points=None, field_w=180, field_h=120):
     """Intern navigation-loop mod et punkt. Stopper ved stop_distance.
 
@@ -146,8 +150,8 @@ def _navigate_to_point(ctx, target_x, target_y, stop_distance, label, turn_speed
                       ctx.iteration, label, sub_x, sub_y, turn_angle, distance))
 
         # Drej hvis vinklen er for stor
-        if abs(turn_angle) > MIN_TURN_DEGREES:
-            if not execute_turn(ctx,TURN_SPEED ,turn_angle):
+        if abs(turn_angle) > min_turn_degrees:
+            if not execute_turn(ctx, turn_speed ,turn_angle):
                 return False
             continue
         

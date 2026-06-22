@@ -10,7 +10,7 @@ import json
 import math
 
 
-def compute_waypoint(gx, gy, field_width=180.0, field_height=120.0, offset_cm=30.0):
+def compute_waypoint(gx, gy, field_width=180.0, field_height=120.0, offset_cm=35.0):
     """Beregner et waypoint X cm foran maalet, peget ind mod banens midte."""
     cx = field_width / 2.0
     cy = field_height / 2.0

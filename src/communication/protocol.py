@@ -61,4 +61,4 @@ def decode_command(raw):
     except (ValueError, IndexError):
         value = None
         speed = None
-    return cmd, value, speed
+    return cmd, speed, value
