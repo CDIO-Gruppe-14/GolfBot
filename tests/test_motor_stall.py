@@ -8,10 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.communication.connection import PCClient
 from config import ROBOT_IP
 from src.server.helpers.command_utils import send_and_verify
+from src.communication.protocol import encode_command
 
 def check_stall_over_network(client):
     """Spørger EV3'en via netværket, om motoren i øjeblikket sidder fast."""
-    if client.send_command("COLLECT_IS_STALLED"):
+    if client.send_command(encode_command("COLLECT_IS_STALLED")):
         reply = client.wait_for_reply()
         if reply:
             return reply.strip() == "TRUE"
@@ -32,7 +33,7 @@ def test_remote_motor_stall():
 
     try:
         print("Sender eject kommando: 'COLLECT_EJECT'...")
-        success = send_and_verify(client, "COLLECT_EJECT")
+        success = send_and_verify(client, "COLLECT_START")
         
         if not success:
             print("Fejl: Robotten bekræftede ikke COLLECT_EJECT.")
