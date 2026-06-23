@@ -59,8 +59,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
     # Normaliser forhindringer til Obstacle-objekter -- bruges baade til
     # approach-punkt-beregningen og til A*-pathfinding under koerslen.
-    
-    #TODO Kig på om vi får de rigtig field variabler
+
     obstacle_points = _normalize_obstacles(obstacles)
     field_w, field_h = getattr(ctx.field_map, "field_size_cm", (180, 120)) #
 
@@ -89,7 +88,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
         wall_app = calculate_wall_approach_point(
             ball.x, ball.y, field_w, field_h,
             wall_safe_dist_cm=WALL_SAFE_RADIUS_CM,
-            approach_dist_cm=WALL_SAFE_RADIUS_CM)
+            approach_dist_cm=WALL_SAFE_RADIUS_CM + 10)
         if wall_app is not None:
             target_x, target_y = wall_app
             approaching = True
@@ -97,7 +96,7 @@ def drive_to_ball(ctx, ball, obstacles=None):
 
     print("\n" + "=" * 60)
     print("[KoerTilBold] Navigation mod {} bold paa ({:.1f}, {:.1f})".format(
-        ball.color, target_x, target_y))
+        ball.color, ball.x, ball.y))
 
     # Committed rute: den praecise A*-sti til maalet planlaegges EN gang og
     # foelges waypoint for waypoint. None = endnu ikke planlagt (eller maal

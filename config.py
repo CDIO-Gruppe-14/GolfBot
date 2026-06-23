@@ -23,7 +23,7 @@ Sektioner:
 
 # IP-adresse på EV3 robotten — SKAL opdateres til jeres netværk!
 # Find den ved at køre: ip addr   på EV3'en
-ROBOT_IP    = "172.20.10.12"
+ROBOT_IP    = "172.20.10.4"
 
 PORT        = 12345   # TCP-port EV3 lytter på
 BUFFER_SIZE = 1024    # Bytes der læses ad gangen fra socket
@@ -113,7 +113,7 @@ CAMERA_FRAME_HEIGHT = 1080   # Højde i pixels
 
 # Fysisk kamerahøjde over baneoverfladen i cm.
 # Brugt i: src/vision/field_map.py (correct_height_offset)
-CAMERA_HEIGHT_CM = 161.0
+CAMERA_HEIGHT_CM = 155.0
 
 # Højde af ArUco-markørens centrum over baneoverfladen i cm.
 # Brugt i: src/vision/field_map.py (correct_height_offset)
@@ -181,7 +181,7 @@ MIN_TURN_DEGREES = 10.0
 # Ekstra cm robotten kører FORBI boldens position.
 # Kompenserer for afstand fra markør til opsamler-åbning.
 # Mål afstanden fra den grønne markør til opsamlerens indgang.
-COLLECTOR_MOVEMENT_CM = 15
+COLLECTOR_MOVEMENT_CM = 18
 
 # Max afstand robotten må køre fremad pr. iteration (cm).
 # Forhindrer overshoots og sikrer re-evaluering af retning undervejs.
@@ -195,7 +195,7 @@ STOP_DISTANCE_CM = 14.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
-PRECISION_MIN_TURN_DEGREES = 5
+PRECISION_MIN_TURN_DEGREES = 3
 PRECISION_TURN_SPEED = 20
 
 # ===========================================================================
@@ -249,7 +249,7 @@ OBSTACLE_SAFE_RADIUS_CM = 5
 WALL_SAFE_RADIUS_CM = 15.0
 # Margin (pixels) som ROI'en krympes indad fra Aruco-banehjørnerne — lille
 # sikkerhedsmargin der holder detektion klar af den røde bande.
-FIELD_BORDER_MARGIN_PX = 50
+FIELD_BORDER_MARGIN_PX = 0
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
 # Epsilon (cm) for kontur-forenkling via cv2.approxPolyDP.

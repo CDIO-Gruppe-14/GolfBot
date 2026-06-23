@@ -45,11 +45,13 @@ def deliver_balls(ctx):
     # Rok robotten frem og tilbage mens transportbaandet stadig koerer i reverse
     print("[{}] [Aflevering] Koerer 6 cm frem mens transportbaandet koerer reverse...".format(
         ctx.iteration))
-    send_and_verify(ctx.client, "FORWARD",30, 6.0)
+    send_and_verify(ctx.client, "FORWARD",20, 4.0)
+
+    time.sleep(1.0)
 
     print("[{}] [Aflevering] Koerer 6 cm tilbage mens transportbaandet koerer reverse...".format(
         ctx.iteration))
-    send_and_verify(ctx.client, "FORWARD",30 , -6.0)
+    send_and_verify(ctx.client, "FORWARD",30 , -4.0)
 
     # Bak vaek fra maalet
     print("[{}] [Aflevering] Bakker 10 cm vaek fra maalet...".format(ctx.iteration))

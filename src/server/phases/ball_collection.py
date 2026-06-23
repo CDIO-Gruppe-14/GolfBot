@@ -52,12 +52,12 @@ def retreat_to_safe(ctx, obstacles):
     obstacle_points = _normalize_obstacles(obstacles)
 
     if is_position_safe((ctx.robot.x, ctx.robot.y),
-                        obstacle_points, field_w, field_h, ROBOT_RADIUS_CM):
+                        obstacle_points, field_w, field_h, ROBOT_RADIUS_CM + 10):
         print("[Retreat] Robotten staar allerede sikkert.")
         return
 
     safe = find_safe_point((ctx.robot.x, ctx.robot.y),
-                           obstacle_points, field_w, field_h, ROBOT_RADIUS_CM)
+                           obstacle_points, field_w, field_h, ROBOT_RADIUS_CM + 10)
     if safe is None:
         print("[Retreat] ADVARSEL: Intet sikkert punkt fundet -- bakker {:.0f} cm.".format(
             ROBOT_BACK_CM))
@@ -67,7 +67,7 @@ def retreat_to_safe(ctx, obstacles):
     path, _ = find_path_adaptive(
         (ctx.robot.x, ctx.robot.y), safe,
         obstacle_points, field_w, field_h,
-        safe_radius=OBSTACLE_SAFE_RADIUS_CM, robot_radius=ROBOT_RADIUS_CM)
+        safe_radius=OBSTACLE_SAFE_RADIUS_CM, robot_radius=ROBOT_RADIUS_CM + 10)
     if path is None:
         print("[Retreat] ADVARSEL: Ingen sti til sikkert punkt -- bakker {:.0f} cm.".format(
             ROBOT_BACK_CM))
@@ -143,7 +143,7 @@ def collect_ball(ctx, ball, obstacles=None):
     
     # I stedet for bare at vente 3 sekunder, poller vi for stall.
     print("[{}] [Opsamling] Venter og tjekker om motoren staller...".format(ctx.iteration))
-    timeout_time = time.time() + 3.0
+    timeout_time = time.time() + 5.0
     stall_start_time = None
     
     while time.time() < timeout_time:
@@ -153,17 +153,18 @@ def collect_ball(ctx, ball, obstacles=None):
                 stall_start_time = time.time()
                 print("[{}] [Opsamling] EV3 melder 'stalled'! Starter timer...".format(ctx.iteration))
             elif time.time() - stall_start_time >= 0.5: # Hvis stalled i 0.5 sekunder
-                print("[{}] [Opsamling] Bolden sidder fast! Kører yderligere 5 cm fremad...".format(ctx.iteration))
-                send_and_verify(ctx.client, "FORWARD", 15, 2.5)
+                print("[{}] [Opsamling] Bolden sidder fast! Kører yderligere 3 cm tilbage og så frem...".format(ctx.iteration))
+                send_and_verify(ctx.client, "FORWARD", 15, -3)
                 # Vent lidt ekstra efter vi er kørt frem, og stop så
-                time.sleep(.5)
-                send_and_verify(ctx.client, "FORWARD", 15, -2.5)
-                break
+                send_and_verify(ctx.client, "FORWARD", 15, 3)
+                continue
         else:
             stall_start_time = None
         time.sleep(0.1)
 
     send_and_verify(ctx.client, "COLLECT_STOP")
+
+    send_and_verify(ctx.client, "FORWARD", SPEED_UNDER_COLLECTION, -COLLECTOR_MOVEMENT_CM)
 
     print("[{}] [Opsamling] Bold opsamlet. Kører imod safe zone".format(ctx.iteration))
 

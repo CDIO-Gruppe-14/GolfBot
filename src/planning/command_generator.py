@@ -43,7 +43,7 @@ def compute_angle_to_target(robot_x, robot_y, target_x, target_y):
     return math.degrees(math.atan2(dy, dx))
 
 
-def compute_distance(robot_x, robot_y, ball_x, ball_y, robot_heading, front_offset_cm):
+def compute_distance(robot_x, robot_y, ball_x, ball_y, robot_heading=0, front_offset_cm=0):
     """Beregn afstand fra robot til bold i cm."""
     front_x, front_y = _front_position(robot_x, robot_y, robot_heading, front_offset_cm)
     dx = ball_x - front_x
