@@ -53,6 +53,28 @@ class TestRoutePlanner(unittest.TestCase):
         self.assertEqual(queue[-1], orange)
         self.assertNotEqual(queue[0], orange)
 
+    def test_orange_endpoint_affects_white_ball_order(self):
+        """Orange skal taelle med i den samlede rutelaengde, selvom den er laast sidst."""
+        ctx = SimpleNamespace(
+            robot=SimpleNamespace(x=0.0, y=0.0),
+            field_map=SimpleNamespace(field_size_cm=(180, 120)),
+        )
+        near_start = Ball(10, 0, "white")
+        far_from_orange = Ball(90, 0, "white")
+        near_orange = Ball(10, 50, "white")
+        orange = Ball(0, 100, "orange")
+        balls = [
+            near_start,
+            near_orange,
+            far_from_orange,
+            orange,
+        ]
+
+        queue = plan_route(ctx, balls, [])
+
+        self.assertEqual(queue[-1], orange)
+        self.assertEqual(queue[-2], near_orange)
+
 
 if __name__ == "__main__":
     unittest.main()

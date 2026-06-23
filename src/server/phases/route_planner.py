@@ -152,7 +152,14 @@ def build_distance_matrix(nodes: Sequence[Ball], obstacles: List[Tuple[float, fl
     return matrix
 
 # --- TRIN 3: 2-OPT RUTEOPTIMERING ---
-def optimize_robot_route(robot_start: Ball, balls: List[Ball], obstacles: Set[Tuple[int, int]], grid_max_x: int, grid_max_y: int) -> Deque[Ball]:
+def optimize_robot_route(
+    robot_start: Ball,
+    balls: List[Ball],
+    obstacles: Set[Tuple[int, int]],
+    grid_max_x: int,
+    grid_max_y: int,
+    fixed_last_count: int = 0,
+) -> Deque[Ball]:
     # Saml alle punkter for at bygge matricen
     all_nodes = [robot_start] + balls
 
@@ -168,15 +175,20 @@ def optimize_robot_route(robot_start: Ball, balls: List[Ball], obstacles: Set[Tu
     def calc_total_distance(r):
         return sum(matrix[(r[i], r[i + 1])] for i in range(len(r) - 1))
 
+    fixed_last_count = max(0, min(fixed_last_count, len(balls)))
+    last_swappable_exclusive = len(route) - fixed_last_count
+
     print("Kører 2-Opt optimering...")
     improvement = True
     while improvement:
         improvement = False
         best_dist = calc_total_distance(route)
 
-        # Vi starter fra index 1, da robotten altid skal starte i 'robot_start'
-        for i in range(1, len(route) - 1):
-            for k in range(i + 1, len(route)):
+        # Vi starter fra index 1, da robotten altid skal starte i 'robot_start'.
+        # Hvis fx orange bold er låst sidst, må 2-opt kun vende de frie bolde
+        # før den låste slutdel. Afstanden til de låste bolde tæller stadig med.
+        for i in range(1, last_swappable_exclusive - 1):
+            for k in range(i + 1, last_swappable_exclusive):
                 # Vend sub-ruten mellem i og k
                 new_route = route[:i] + route[i:k + 1][::-1] + route[k + 1:]
                 new_dist = calc_total_distance(new_route)
@@ -219,20 +231,20 @@ def plan_route(ctx, balls, obstacals):
 
     # Orange er VIP-bolden: 200 bonuspoint HVIS den afleveres foerst.
     # Robotten holder bolde efter LIFO -> orange skal samles SIDST, saa den
-    # ligger oeverst i magasinet og afleveres foerst. Derfor optimeres KUN de
-    # hvide boldes raekkefoelge; orange append'es til sidst.
+    # ligger oeverst i magasinet og afleveres foerst. Orange er derfor med i
+    # A*-ruten, men låses som sidste punkt under 2-opt.
     orange_balls = [b for b in balls if b.color == "orange"]
     white_balls = [b for b in balls if b.color != "orange"]
+    route_balls = white_balls + orange_balls
 
     sorted_balls = optimize_robot_route(
         robot_start,
-        white_balls,
+        route_balls,
         obstacles,
         int(field_width),
         int(field_height),
+        fixed_last_count=len(orange_balls),
     )
-    for orange in orange_balls:
-        sorted_balls.append(orange)
 
     print("[Ruteplaner] Planlagt raekkefoelge for {} bolde:".format(len(sorted_balls)))
     for i, ball in enumerate(sorted_balls):
