@@ -215,10 +215,16 @@ def run_camera():
     ball_det = BallDetector(detector, field_map)
     obstacle_det = ObstacleDetector(detector, field_map)
 
-    frame = camera.get_frame()
+    frame = None # Tager 20 test-billeder til kalibrering og vælger det nyeste for at minimere risiko for kamera er ude af fokus og derfor ikke kan se bolde
+    for _ in range(20):
+        new_frame = camera.get_frame()
+        if new_frame is not None:
+            frame = new_frame
+
     if frame is None:
         print("FEJL: Kunne ikke tage billede fra kamera.")
         return
+    
     if not field_map.calibrate_from_aruco(frame):
         print("ADVARSEL: ArUco bane-kalibrering fejlede -- bruger fallback-hjoerner.")
 
