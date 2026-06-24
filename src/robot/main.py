@@ -69,7 +69,7 @@ def command_loop(server, mc, collector=None):
         elif cmd == "COLLECT_START":
             print("-> Modtog COLLECT_START. Er collector initialiseret?", collector is not None)
             if collector:
-                collector.start_collection()
+                collector.start_collection(speed)
             else:
                 print("FEJL: Opsamleren (BallCollector) kunne ikke startes, da objektet er None!")
             server.send_reply(DONE)
@@ -83,7 +83,7 @@ def command_loop(server, mc, collector=None):
         elif cmd == "COLLECT_EJECT":
             print("-> Modtog COLLECT_EJECT.")
             if collector:
-                collector.eject_ball()
+                collector.eject_ball(speed)
             server.send_reply(DONE)
 
         elif cmd == "COLLECT_IS_STALLED":
