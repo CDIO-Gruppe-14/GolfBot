@@ -153,7 +153,7 @@ MORPH_KERNEL_SIZE = 5
 # Brugt i: src/vision/field_map.py  (linje 6)
 
 # Banens fysiske mål i cm  (bredde, højde)
-FIELD_SIZE_CM = (177.0, 132.0 )
+FIELD_SIZE_CM = (167.0, 121.0 )
 
 # Banens hjørner i pixelkoordinater — FALLBACK-VÆRDIER!
 # Disse bruges KUN hvis calibration/field_corners.json ikke findes.
@@ -191,7 +191,7 @@ MAX_STEP_CM = 50.0
 # Brugt i: src/server/phases/drive_to_ball.py
 DISTANCE_TO_BALL = 10.0
 
-STOP_DISTANCE_CM = 14.0
+STOP_DISTANCE_CM = 6.0
 
 # Mindste drejningsvinkel i præcisions-zone (tæt på bold).
 # Brugt i: src/server/phases/drive_to_ball.py
@@ -242,14 +242,14 @@ GOAL_B_MARKER_ID = 11
 # ===========================================================================
 # Sikkerhedsafstand (cm) omkring forhindringer. Bruges både til A* stifinding
 # og til at bestemme afstanden til vores "Approach Point" når en bold samles op.
-OBSTACLE_SAFE_RADIUS_CM = 5
+OBSTACLE_SAFE_RADIUS_CM = 8
 # Afstand (cm) fra banden hvor en bold regnes som "kant-bold", og robotten i
 # stedet koerer til et approach-punkt langs vaegnormalen (vinkelret indefra),
 # saa den ikke rammer banden under opsamling. Brugt i drive_to_ball (#3).
 WALL_SAFE_RADIUS_CM = 15.0
 # Margin (pixels) som ROI'en krympes indad fra Aruco-banehjørnerne — lille
 # sikkerhedsmargin der holder detektion klar af den røde bande.
-FIELD_BORDER_MARGIN_PX = 0
+FIELD_BORDER_MARGIN_PX = 30
 # Mindste areal (pixels) for at en rød klat anerkendes som det Røde Kryds
 OBSTACLE_MIN_AREA_PX = 150
 # Epsilon (cm) for kontur-forenkling via cv2.approxPolyDP.
