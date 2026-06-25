@@ -1,0 +1,21 @@
+{
+  "name": "white",
+  "h": 103,
+  "s": 29,
+  "v": 219,
+  "h_tol": 64,
+  "s_tol": 71,
+  "v_tol": 35,
+  "lower": [
+    39,
+    0,
+    184
+  ],
+  "upper": [
+    167,
+    100,
+    254
+  ],
+  "min_circularity": 0.2,
+  "max_aspect_ratio": 2.0
+}

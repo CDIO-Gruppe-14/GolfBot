@@ -50,19 +50,15 @@ def command_loop(server, mc, collector=None):
             print("Forbindelse mistet.")
             break
 
-        cmd, value = decode_command(raw)
-        print("Modtog: {!r} | Vaerdi: {}".format(cmd, value))
+        cmd, speed, value = decode_command(raw)
+        print("Modtog: {!r} | Speed: {} | Vaerdi: {}".format(cmd, speed, value))
 
         if cmd == "FORWARD":
-            mc.move_forward(value)
+            mc.move_forward(speed, value)
             server.send_reply(DONE)
 
         elif cmd == "TURN":
-            mc.turn(value)
-            server.send_reply(DONE)
-
-        elif cmd == "HEADING":
-            # Gyro ikke tilsluttet -- server bruger kamera i stedet
+            mc.turn(speed, value)
             server.send_reply(DONE)
 
         elif cmd == "STOP":
@@ -73,7 +69,7 @@ def command_loop(server, mc, collector=None):
         elif cmd == "COLLECT_START":
             print("-> Modtog COLLECT_START. Er collector initialiseret?", collector is not None)
             if collector:
-                collector.start_collection()
+                collector.start_collection(speed)
             else:
                 print("FEJL: Opsamleren (BallCollector) kunne ikke startes, da objektet er None!")
             server.send_reply(DONE)
@@ -87,8 +83,14 @@ def command_loop(server, mc, collector=None):
         elif cmd == "COLLECT_EJECT":
             print("-> Modtog COLLECT_EJECT.")
             if collector:
-                collector.eject_ball()
+                collector.eject_ball(speed)
             server.send_reply(DONE)
+
+        elif cmd == "COLLECT_IS_STALLED":
+            if collector and collector.is_stalled():
+                server.send_reply("TRUE")
+            else:
+                server.send_reply("FALSE")
 
         elif cmd == "COLLECT":
             # Stubbed full collect sequence if needed later

@@ -1,0 +1,65 @@
+import unittest
+import os
+import sys
+from types import SimpleNamespace
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.server.phases.detection import detect_balls, detect_obstacles, detect_robot
+from src.vision.ball_detector import BallDetector
+from src.vision.obstacle_detector import ObstacleDetector
+from src.vision.camera import RobotCamera
+from src.vision.color_detector import ColorDetector
+from src.vision.field_map import FieldMap
+from src.vision.robot_tracker import RobotTracker
+from src.vision.aruco_detector import ArucoDetector
+
+from src.entities.robot import Robot
+
+
+class TestPhase1Detection(unittest.TestCase):
+    def test_phase1_with_camera(self):
+        camera = RobotCamera()
+        try:
+            frame = camera.get_frame()
+            if frame is None:
+                self.fail("Kameraet kunne ikke levere et frame")
+
+            detector = ColorDetector()
+            aruco_detector = ArucoDetector()
+            
+            loaded_profiles = detector.load_all_profiles()
+            if not loaded_profiles:
+                self.fail("Ingen farveprofiler blev indlæst fra color_profiles/. Kør kalibrering først.")
+
+            field_map = FieldMap(aruco_detector=aruco_detector)
+            ctx = SimpleNamespace(
+                camera=camera,
+                tracker=RobotTracker(aruco_detector),
+                ball_detector=BallDetector(detector, field_map),
+                obstacle_detector=ObstacleDetector(detector, field_map),
+                field_map=field_map,
+                estimated_heading=None,
+                robot = Robot()
+            )
+            robot_found = detect_robot(ctx)
+            balls = detect_balls(ctx)
+            obstacles = detect_obstacles(ctx)
+
+            print("\n--- Phase 1 resultater ---")
+            print(f"Robot: {ctx.robot}")
+            print(f"Bolde fundet: {len(balls)}")
+            for ball in balls:
+                print(f"  {ball}")
+            print(f"Forhindringer fundet: {len(obstacles)}")
+
+            self.assertTrue(robot_found, "Robot ikke fundet paa banen")
+            self.assertIsInstance(balls, list)
+            self.assertIsInstance(obstacles, list)
+
+        finally:
+            camera.release()
+
+
+if __name__ == "__main__":
+    unittest.main()

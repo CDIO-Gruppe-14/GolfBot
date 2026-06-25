@@ -15,18 +15,18 @@ class BallCollector:
             print(err_msg.encode('ascii', 'replace').decode('ascii'))
             self.motor = None
 
-    def start_collection(self):
+    def start_collection(self, speed):
         """Starter baandet, saa det suger bolden IND i robotten."""
         if self.motor:
             # Hvis jeres test viste at minus koerer fremad:
-            self.motor.on(SpeedPercent(-COLLECTOR_SPEED))
+            self.motor.on(SpeedPercent(-speed))
             print("Opsamlingsbaand koerer: SLYNGER IND")
 
-    def eject_ball(self):
+    def eject_ball(self, speed):
         """Koerer baandet baglaens, saa bolden spyttes UD."""
         if self.motor:
             # Modsat fortegn for at koere baglaens og spytte ud
-            self.motor.on(SpeedPercent(COLLECTOR_SPEED))
+            self.motor.on(SpeedPercent(speed))
             print("Opsamlingsbaand koerer baglaens: SPYTTER UD")
 
     def stop(self):
@@ -34,3 +34,9 @@ class BallCollector:
         if self.motor:
             self.motor.off()
             print("Opsamlingsbaand stoppet.")
+
+    def is_stalled(self):
+        """Tjekker om motoren sidder fast."""
+        if self.motor:
+            return 'stalled' in self.motor.state
+        return False

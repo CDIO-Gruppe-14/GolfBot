@@ -18,7 +18,6 @@ Svar EV3 → PC:
 # --- Kommando-konstanter ---
 FORWARD = "FORWARD"
 TURN    = "TURN"
-HEADING = "HEADING"
 STOP    = "STOP"
 
 # --- Svar-konstanter ---
@@ -26,7 +25,7 @@ DONE  = "DONE"
 ERROR = "ERROR"
 
 
-def encode_command(cmd: str, value: float = None) -> str:
+def encode_command(cmd: str, speed: float = None, value: float = None) -> str:
     """
     Formatter en kommando til afsendelse over socket.
 
@@ -36,7 +35,7 @@ def encode_command(cmd: str, value: float = None) -> str:
         encode_command("HEADING")        →  "HEADING\\n"
     """
     if value is not None:
-        return "{} {}\n".format(cmd, value)
+        return "{} {} {}\n".format(cmd, speed, value)
     return "{}\n".format(cmd)
 
 
@@ -57,7 +56,9 @@ def decode_command(raw):
         return (ERROR, None)
     cmd = parts[0].upper()
     try:
-        value = float(parts[1]) if len(parts) > 1 else None
+        speed = float(parts[1]) if len(parts) > 1 else None
+        value = float(parts[2]) if len(parts) > 2 else None
     except (ValueError, IndexError):
         value = None
-    return cmd, value
+        speed = None
+    return cmd, speed, value

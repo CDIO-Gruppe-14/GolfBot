@@ -1,31 +1,51 @@
-# TODO: Implementer ObstacleDetector til detektion af røde kryds-forhindringer på banen.
-#
-# Formål:
-#   Detektere placeringen af det røde kryds (cross-forhindring) på banen,
-#   så pathfinderen (A*) kan undgå det under ruteplanlægning.
-#
-# Planlagt implementering:
-#   - Brug ColorDetector med en kalibreret "red" HSV-profil
-#   - Returnér en liste af ObstacleZone(x, y, radius) i pixels
-#   - Pathfinderen markerer disse zoner som ikke-fremkommelige felter i sit grid
-#
-# Afhænger af:
-#   - src/vision/color_detector.py  (ColorDetector)
-#   - src/planning/pathfinder.py    (A* — endnu ikke implementeret)
-#   - color_profiles/red.json       (skal kalibreres med color_calibrator.py)
-#
-# Eksempel på fremtidig API:
-#
-#   @dataclass
-#   class ObstacleZone:
-#       x: float       # pixels
-#       y: float       # pixels
-#       radius: float  # pixels — sikkerhedszone rundt om forhindringen
-#
-#   class ObstacleDetector:
-#       def __init__(self, color_detector, obstacle_color="red"):
-#           ...
-#
-#       def detect(self, frame) -> list[ObstacleZone]:
-#           """Returnerer liste af detekterede forhindringszoner."""
-#           ...
+import sys
+import os
+import numpy as np
+from dataclasses import dataclass, field
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config import FIELD_BORDER_MARGIN_PX, OBSTACLE_MIN_AREA_PX
+
+
+@dataclass
+class ObstaclePosition:
+    x: float
+    y: float
+    area: float = field(default=0.0, repr=False)
+    contour: np.ndarray = field(default=None, repr=False)
+
+
+class ObstacleDetector:
+    """Finder forhindringer (det Røde Kryds) inden for banens indre."""
+
+    def __init__(self, color_detector, field_map, profile="roed",
+                 min_area=OBSTACLE_MIN_AREA_PX,
+                 border_margin=FIELD_BORDER_MARGIN_PX):
+        self.detector = color_detector
+        self.field_map = field_map
+        self.profile = profile
+        self.min_area = min_area
+        self.border_margin = border_margin
+
+    def find_obstacles(self, frame) -> list[ObstaclePosition]:
+        """Finder alle forhindringer i pixel-koordinater.
+
+        Begrænser detektion til banens indre (Aruco-hjørner, ekskluderer den
+        røde bande) og filtrerer små 'røde' prikker fra (støj).
+        """
+        # Find banens indre (defineret af Aruco-markørerne)
+        polygon = self.field_map.field_polygon(margin_px=self.border_margin)
+
+        if self.profile not in self.detector.profiles:
+            return []
+
+        obstacles = []
+        for r in self.detector.detect_all(frame, self.profile, roi_polygon=polygon):
+            if r.found and r.center and r.area > self.min_area:
+                obstacles.append(ObstaclePosition(
+                    x=r.center[0],
+                    y=r.center[1],
+                    area=r.area,
+                    contour=r.contour,
+                ))
+        return obstacles

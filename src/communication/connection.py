@@ -2,6 +2,7 @@ import socket
 import time
 import sys
 import os
+import errno
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import PORT, BUFFER_SIZE, MAX_RETRIES, CONNECT_TIMEOUT_SEC, RETRY_DELAY_SEC
@@ -18,7 +19,18 @@ class RobotServer:
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         # Lyt til alle der vil snakke paa PORT 12345 (USB, Bluetooth, WiFi)
-        self.server_socket.bind(('0.0.0.0', PORT)) 
+        try:
+            self.server_socket.bind(('0.0.0.0', PORT))
+        except OSError as e:
+            self.server_socket.close()
+            self.server_socket = None
+            if e.errno in (errno.EADDRINUSE, 98):
+                raise OSError(
+                    e.errno,
+                    "Port {} er allerede i brug. Stop den anden robot-server, "
+                    "eller skift PORT i config.py.".format(PORT)
+                )
+            raise
         self.server_socket.listen(1)
         
         self.client_conn = None
