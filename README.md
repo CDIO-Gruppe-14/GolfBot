@@ -88,10 +88,10 @@ Se `docs/kalibrering-og-kørsel.md` for en komplet step-by-step guide inkl. farv
 | Motor-styring (FORWARD, TURN) | Implementeret |
 | Kamera-baseret navigation (server-loop) | Implementeret |
 | Dobbelt-markør heading | Implementeret |
-| Boldopsamling (collector) | Delvist — `BallCollector`-klasse eksisterer, men er ikke integreret i `robot/main.py` |
-| A*-pathfinding | Ikke implementeret (`pathfinder.py` er tom) |
-| Boldstrategi (VIP-prioritering) | Ikke implementeret (`strategy.py` er en stub) |
-| Forhindringsdetektion | Ikke implementeret i navigations-loopet |
+| Boldopsamling (collector) | Implementeret |
+| A*-pathfinding | Implementeret |
+| Boldstrategi (VIP-prioritering) | Implementeret |
+| Forhindringsdetektion | Implementeret |
 
 ## Konkurrenceregler
 
